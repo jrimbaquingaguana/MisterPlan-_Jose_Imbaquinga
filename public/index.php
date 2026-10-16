@@ -2,22 +2,21 @@
 
 declare(strict_types=1);
 
+use App\Http\ErrorHandler;
+use App\Http\JsonResponse;
+use App\Http\Router;
+
 ini_set('display_errors', '0');
 ini_set('log_errors', '1');
 
-try {
-    require dirname(__DIR__) . '/vendor/autoload.php';
-    $config = require dirname(__DIR__) . '/config/config.php';
-} catch (Throwable $error) {
-    error_log('Fallo de arranque de MisterPlan: ' . $error->getMessage());
-    http_response_code(500);
-    header('Content-Type: text/html; charset=UTF-8');
-    echo '<!doctype html><html lang="es"><meta charset="utf-8"><title>MisterPlan</title><main><h1>Servicio temporalmente no disponible</h1><p>Inténtalo de nuevo más tarde.</p></main></html>';
-    exit;
-}
+require dirname(__DIR__) . '/vendor/autoload.php';
+ErrorHandler::register();
+$config = require dirname(__DIR__) . '/config/config.php';
 
-http_response_code(200);
-header('Content-Type: text/html; charset=UTF-8');
+$router = new Router();
+$router->add('GET', '/', static function (): void {
+    http_response_code(200);
+    header('Content-Type: text/html; charset=UTF-8');
 ?>
 <!doctype html>
 <html lang="es">
@@ -33,3 +32,11 @@ header('Content-Type: text/html; charset=UTF-8');
     </main>
 </body>
 </html>
+<?php
+});
+
+$router->add('GET', '/api/health', static function (): void {
+    JsonResponse::send(['status' => 'ok']);
+});
+
+$router->dispatch($_SERVER['REQUEST_METHOD'] ?? 'GET', $_SERVER['REQUEST_URI'] ?? '/');

@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-Dotenv\Dotenv::createImmutable(dirname(__DIR))->safeLoad();
+Dotenv\Dotenv::createImmutable(dirname(__DIR__))->safeLoad();
 
 $read = static function (string $name): string {
     $value = getenv($name);

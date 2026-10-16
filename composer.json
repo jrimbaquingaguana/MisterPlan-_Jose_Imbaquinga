@@ -3,6 +3,11 @@
     "description": "Aplicación de reservas de MisterPlan",
     "type": "project",
     "license": "proprietary",
+    "autoload": {
+        "psr-4": {
+            "App\\": "src/"
+        }
+    },
     "require": {
         "php": ">=8.1",
         "ext-pdo": "*",
