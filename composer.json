@@ -1,0 +1,12 @@
+{
+    "name": "misterplan/reservas",
+    "description": "Aplicación de reservas de MisterPlan",
+    "type": "project",
+    "license": "proprietary",
+    "require": {
+        "php": ">=8.1",
+        "ext-pdo": "*",
+        "ext-pdo_mysql": "*",
+        "vlucas/phpdotenv": "^5.6"
+    }
+}
