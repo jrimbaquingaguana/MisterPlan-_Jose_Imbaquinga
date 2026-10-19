@@ -1,0 +1,67 @@
+:root {
+    color-scheme: light;
+    font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    color: #243440;
+    background: #f4f6f7;
+    line-height: 1.6;
+}
+* { box-sizing: border-box; }
+body { margin: 0; }
+a { color: #155c75; text-underline-offset: 0.2em; }
+a:hover { color: #093b4e; }
+:focus-visible { outline: 3px solid #a64b00; outline-offset: 4px; }
+.container { width: min(1160px, 100% - 2rem); margin-inline: auto; }
+.site-header { background: #173e4d; padding: 1.1rem 0; }
+.brand { color: #fff; text-decoration: none; font-size: 1.2rem; font-weight: 700; }
+.brand:hover { color: #fff; text-decoration: underline; }
+.brand span { font-weight: 400; }
+main { padding-block: 2rem 3rem; }
+h1, h2, h3 { line-height: 1.25; overflow-wrap: anywhere; }
+h1 { font-size: clamp(1.8rem, 4vw, 2.5rem); margin: 0.7rem 0; }
+h2 { font-size: 1.25rem; margin-top: 0; }
+h3 { font-size: 1rem; }
+.intro, .hint { color: #4c5e68; }
+.intro { margin-bottom: 1.8rem; }
+.hint { font-size: 0.9rem; margin-bottom: 0; }
+.panel { background: #fff; border: 1px solid #ccd6da; border-radius: 0.5rem; padding: clamp(1rem, 3vw, 1.5rem); margin-bottom: 1.75rem; }
+.filters { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 10rem), 1fr)); gap: 1rem; align-items: start; }
+.field { display: flex; flex-direction: column; gap: 0.35rem; min-width: 0; }
+label, dt { font-weight: 600; }
+input, select, button { font: inherit; min-height: 2.75rem; border-radius: 0.25rem; }
+input, select { width: 100%; min-width: 0; border: 1px solid #71838d; background: #fff; color: #243440; padding: 0.5rem; }
+button { background: #155c75; color: #fff; border: 1px solid #155c75; padding: 0.5rem 1.2rem; cursor: pointer; }
+button:hover { background: #093b4e; }
+.filter-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 1rem; grid-column: 1 / -1; }
+.error-summary { border-left: 4px solid #a32424; background: #fff1f0; padding: 0.5rem 1rem; margin-bottom: 1.2rem; }
+.field-error { color: #9b2020; font-size: 0.9rem; margin: 0; }
+[aria-invalid="true"] { border-color: #a32424; }
+.table-scroll { overflow-x: auto; border: 1px solid #ccd6da; border-radius: 0.4rem; background: #fff; }
+table { width: 100%; border-collapse: collapse; text-align: left; }
+th, td { padding: 0.9rem 1rem; border-bottom: 1px solid #dce3e6; vertical-align: top; }
+thead th { background: #e9eff1; font-size: 0.9rem; }
+tbody th { font-weight: 600; }
+tbody tr:last-child > * { border-bottom: 0; }
+td time, .amount { white-space: nowrap; }
+.amount { text-align: right; font-variant-numeric: tabular-nums; }
+.estado { display: inline-block; border-radius: 1rem; padding: 0.15rem 0.7rem; font-size: 0.9rem; font-weight: 600; white-space: nowrap; }
+.estado-pendiente { color: #704400; background: #fff0c7; }
+.estado-confirmada { color: #185c3a; background: #daf0e3; }
+.estado-cancelada { color: #8a2525; background: #fbe0df; }
+.pagination { display: flex; flex-wrap: wrap; gap: 1rem; margin-top: 1rem; }
+.pagination a { border: 1px solid #71838d; border-radius: 0.25rem; background: #fff; padding: 0.5rem 1rem; }
+.empty-state { padding: 1.5rem; background: #fff; border: 1px dashed #71838d; border-radius: 0.4rem; }
+.back-link { display: inline-block; margin-bottom: 0.5rem; }
+.details { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 16rem), 1fr)); gap: 1.2rem 2rem; margin-bottom: 0; }
+.details div { min-width: 0; }
+dt { font-size: 0.9rem; color: #4c5e68; }
+dd { margin: 0.25rem 0 0; overflow-wrap: anywhere; }
+.full-width { grid-column: 1 / -1; }
+.notes { white-space: pre-wrap; }
+.history { padding-left: 1.5rem; }
+.history li { padding: 0 0 1rem 0.5rem; overflow-wrap: anywhere; }
+.history h3 { margin-bottom: 0.4rem; }
+.history p { margin-block: 0.4rem; }
+.history time { color: #4c5e68; font-size: 0.9rem; }
+.eyebrow { font-weight: 600; color: #4c5e68; }
+.visually-hidden, .skip-link:not(:focus) { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+.skip-link:focus { display: block; padding: 0.75rem; background: #fff; }

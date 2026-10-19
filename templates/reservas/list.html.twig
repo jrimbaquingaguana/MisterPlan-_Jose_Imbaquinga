@@ -1,0 +1,92 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Reservas de alojamiento{% endblock %}
+
+{% block content %}
+    <h1>Reservas de alojamiento</h1>
+    <p class="intro">Consulta las estancias y el historial de cada reserva.</p>
+
+    <section class="panel" aria-labelledby="filtros-title">
+        <h2 id="filtros-title">Buscar reservas</h2>
+        {% if errors is not empty %}
+            <div class="error-summary" role="alert">
+                <p>Revisa los filtros. No se ha realizado la consulta.</p>
+                <ul>{% for error in errors %}<li>{{ error }}</li>{% endfor %}</ul>
+            </div>
+        {% endif %}
+        <form action="/reservas" method="get" class="filters">
+            <div class="field">
+                <label for="estado">Estado</label>
+                <select id="estado" name="estado" {% if errors.estado is defined %}aria-invalid="true" aria-describedby="error-estado"{% endif %}>
+                    <option value="">Todos los estados</option>
+                    {% for estado in ['pendiente', 'confirmada', 'cancelada'] %}
+                        <option value="{{ estado }}" {% if values.estado == estado %}selected{% endif %}>{{ estado|capitalize }}</option>
+                    {% endfor %}
+                </select>
+                {% if errors.estado is defined %}<p class="field-error" id="error-estado">{{ errors.estado }}</p>{% endif %}
+            </div>
+            <div class="field">
+                <label for="desde">Desde</label>
+                <input id="desde" type="date" name="desde" value="{{ values.desde }}" min="1000-01-01" max="9999-12-31" {% if errors.desde is defined %}aria-invalid="true" aria-describedby="error-desde"{% endif %}>
+                {% if errors.desde is defined %}<p class="field-error" id="error-desde">{{ errors.desde }}</p>{% endif %}
+            </div>
+            <div class="field">
+                <label for="hasta">Hasta</label>
+                <input id="hasta" type="date" name="hasta" value="{{ values.hasta }}" min="1000-01-01" max="9999-12-31" {% if errors.hasta is defined %}aria-invalid="true" aria-describedby="error-hasta"{% endif %}>
+                {% if errors.hasta is defined %}<p class="field-error" id="error-hasta">{{ errors.hasta }}</p>{% endif %}
+            </div>
+            <div class="field search-field">
+                <label for="q">Nombre del huésped</label>
+                <input id="q" type="search" name="q" value="{{ values.q }}" maxlength="100" {% if errors.q is defined %}aria-invalid="true" aria-describedby="error-q"{% endif %}>
+                {% if errors.q is defined %}<p class="field-error" id="error-q">{{ errors.q }}</p>{% endif %}
+            </div>
+            <div class="field">
+                <label for="per_page">Por página</label>
+                <select id="per_page" name="per_page" {% if errors.per_page is defined %}aria-invalid="true" aria-describedby="error-per-page"{% endif %}>
+                    {% for option in per_page_options %}<option value="{{ option }}" {% if values.per_page == option %}selected{% endif %}>{{ option }}</option>{% endfor %}
+                </select>
+                {% if errors.per_page is defined %}<p class="field-error" id="error-per-page">{{ errors.per_page }}</p>{% endif %}
+            </div>
+            <div class="filter-actions"><button type="submit">Filtrar</button><a href="/reservas">Limpiar filtros</a></div>
+        </form>
+        <p class="hint">El intervalo muestra estancias que coinciden con las fechas seleccionadas.</p>
+    </section>
+
+    {% if errors is empty %}
+        <section aria-labelledby="resultados-title">
+            <h2 id="resultados-title">Resultados</h2>
+            <p>{{ meta.total }} resultados · Página {{ meta.page }} de {{ max(1, meta.total_pages) }}</p>
+            {% if valid_page_url %}
+                <div class="empty-state"><p>La página solicitada está fuera de los resultados.</p><a href="{{ valid_page_url }}">Volver a una página válida</a></div>
+            {% elseif reservas is empty %}
+                <p class="empty-state">No hay reservas que coincidan con los filtros.</p>
+            {% else %}
+                <div class="table-scroll" role="region" aria-label="Reservas encontradas" tabindex="0">
+                    <table>
+                        <caption class="visually-hidden">Reservas encontradas</caption>
+                        <thead><tr><th scope="col">Huésped</th><th scope="col">Alojamiento</th><th scope="col">Entrada</th><th scope="col">Salida</th><th scope="col">Estado</th><th scope="col">Importe</th><th scope="col">Detalle</th></tr></thead>
+                        <tbody>
+                            {% for reserva in reservas %}
+                                <tr>
+                                    <th scope="row">{{ reserva.nombre_huesped }}</th>
+                                    <td>{{ reserva.nombre_alojamiento }}</td>
+                                    <td><time datetime="{{ reserva.fecha_entrada }}">{{ reserva.fecha_entrada|date('d/m/Y', false) }}</time></td>
+                                    <td><time datetime="{{ reserva.fecha_salida }}">{{ reserva.fecha_salida|date('d/m/Y', false) }}</time></td>
+                                    <td>{% include 'reservas/_estado.html.twig' with {estado: reserva.estado} only %}</td>
+                                    <td class="amount">{{ reserva.importe|number_format(2, ',', '.') }} €</td>
+                                    <td><a href="{{ reserva.detail_url }}" aria-label="Ver reserva {{ reserva.id }} de {{ reserva.nombre_huesped }}">Ver detalle</a></td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            {% endif %}
+            {% if previous_url or next_url %}
+                <nav class="pagination" aria-label="Paginación de reservas">
+                    {% if previous_url %}<a href="{{ previous_url }}" rel="prev">Anterior</a>{% endif %}
+                    {% if next_url %}<a href="{{ next_url }}" rel="next">Siguiente</a>{% endif %}
+                </nav>
+            {% endif %}
+        </section>
+    {% endif %}
+{% endblock %}

@@ -74,7 +74,6 @@ foreach ([['confirmada', 'confirmada'], ['confirmada', 'cancelada'], ['cancelada
             stream_set_blocking($pipes[2], false);
             $workers[] = ['process' => $process, 'out' => $pipes[1], 'err' => $pipes[2], 'text' => ''];
         }
-        // Observe both independent connections executing the locking read while our row lock is held.
         $deadline = microtime(true) + 5;
         do {
             foreach ($workers as &$worker) {

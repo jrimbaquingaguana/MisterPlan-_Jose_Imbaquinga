@@ -1,0 +1,39 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Reserva {{ reserva.id }}{% endblock %}
+
+{% block content %}
+    <a class="back-link" href="{{ back_url }}">← Volver al listado</a>
+    <h1>Reserva {{ reserva.id }}</h1>
+    <section class="panel" aria-labelledby="reserva-title">
+        <h2 id="reserva-title">Datos de la reserva</h2>
+        <dl class="details">
+            <div><dt>Identificador</dt><dd>{{ reserva.id }}</dd></div>
+            <div><dt>Huésped</dt><dd>{{ reserva.nombre_huesped }}</dd></div>
+            <div><dt>Correo electrónico</dt><dd>{{ reserva.email_huesped }}</dd></div>
+            <div><dt>Alojamiento</dt><dd>{{ reserva.nombre_alojamiento }}</dd></div>
+            <div><dt>Entrada</dt><dd><time datetime="{{ reserva.fecha_entrada }}">{{ reserva.fecha_entrada|date('d/m/Y', false) }}</time></dd></div>
+            <div><dt>Salida</dt><dd><time datetime="{{ reserva.fecha_salida }}">{{ reserva.fecha_salida|date('d/m/Y', false) }}</time></dd></div>
+            <div><dt>Estado</dt><dd>{% include 'reservas/_estado.html.twig' with {estado: reserva.estado} only %}</dd></div>
+            <div><dt>Importe</dt><dd>{{ reserva.importe|number_format(2, ',', '.') }} €</dd></div>
+            <div><dt>Fecha de creación</dt><dd><time datetime="{{ reserva.fecha_creacion|replace({' ': 'T'}) }}">{{ reserva.fecha_creacion|date('d/m/Y H:i', false) }}</time></dd></div>
+            <div class="full-width"><dt>Notas</dt><dd class="notes">{{ reserva.notas is same as(null) or reserva.notas == '' ? 'Sin notas' : reserva.notas }}</dd></div>
+        </dl>
+    </section>
+    <section class="panel" aria-labelledby="historial-title">
+        <h2 id="historial-title">Historial</h2>
+        {% if reserva.eventos is empty %}
+            <p>No hay eventos registrados.</p>
+        {% else %}
+            <ol class="history">
+                {% for evento in reserva.eventos %}
+                    <li>
+                        <h3>{{ {creada: 'Reserva creada', confirmada: 'Reserva confirmada', cancelada: 'Reserva cancelada'}[evento.tipo] }}</h3>
+                        <p>{{ evento.descripcion }}</p>
+                        <time datetime="{{ evento.fecha_creacion|replace({' ': 'T'}) }}">{{ evento.fecha_creacion|date('d/m/Y H:i', false) }}</time>
+                    </li>
+                {% endfor %}
+            </ol>
+        {% endif %}
+    </section>
+{% endblock %}

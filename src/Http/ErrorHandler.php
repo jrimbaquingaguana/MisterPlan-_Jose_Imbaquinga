@@ -24,24 +24,54 @@ final class ErrorHandler
 
         set_exception_handler(static function (Throwable $error): void {
             restore_error_handler();
-            if ($error instanceof RequestException) {
-                JsonResponse::send(['error' => $error->getMessage()], $error->status);
-                return;
-            }
-            if ($error instanceof \App\Domain\ReservaValidationException) {
-                JsonResponse::send(['error' => $error->getMessage(), 'errors' => $error->errors], 422);
-                return;
-            }
-            if ($error instanceof ReservaNotFoundException) {
-                JsonResponse::send(['error' => 'Reserva no encontrada'], 404);
-                return;
-            }
-            if ($error instanceof \App\Domain\ReservaConflictException) {
-                JsonResponse::send(['error' => $error->getMessage()], 409);
-                return;
-            }
-            error_log('MisterPlan: excepción inesperada de tipo ' . get_class($error));
-            JsonResponse::send(['error' => 'Error interno del servidor'], 500);
+            self::respond($error);
         });
+    }
+
+    public static function isApiRequest(): bool
+    {
+        $path = explode('?', $_SERVER['REQUEST_URI'] ?? '/', 2)[0];
+        return $path === '/api' || str_starts_with($path, '/api/');
+    }
+
+    public static function respond(Throwable $error): void
+    {
+        if (!self::isApiRequest()) {
+            $status = 500;
+            $message = 'Error interno del servidor';
+            if ($error instanceof ReservaNotFoundException) {
+                $status = 404;
+                $message = 'Reserva no encontrada';
+            } elseif ($error instanceof RequestException) {
+                $status = $error->status;
+                $message = $error->getMessage();
+            } else {
+                error_log('MisterPlan: excepción inesperada de tipo ' . get_class($error));
+            }
+            try {
+                HtmlResponse::create()->error($message, $status);
+            } catch (Throwable $renderError) {
+                HtmlResponse::fallback($status);
+            }
+            return;
+        }
+        if ($error instanceof RequestException) {
+            JsonResponse::send(['error' => $error->getMessage()], $error->status);
+            return;
+        }
+        if ($error instanceof \App\Domain\ReservaValidationException) {
+            JsonResponse::send(['error' => $error->getMessage(), 'errors' => $error->errors], 422);
+            return;
+        }
+        if ($error instanceof ReservaNotFoundException) {
+            JsonResponse::send(['error' => 'Reserva no encontrada'], 404);
+            return;
+        }
+        if ($error instanceof \App\Domain\ReservaConflictException) {
+            JsonResponse::send(['error' => $error->getMessage()], 409);
+            return;
+        }
+        error_log('MisterPlan: excepción inesperada de tipo ' . get_class($error));
+        JsonResponse::send(['error' => 'Error interno del servidor'], 500);
     }
 }

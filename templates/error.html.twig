@@ -1,0 +1,11 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Error {{ status }}{% endblock %}
+
+{% block content %}
+    <section class="panel">
+        <p class="eyebrow">Error {{ status }}</p>
+        <h1>{{ message }}</h1>
+        <p><a href="/reservas">Volver al listado de reservas</a></p>
+    </section>
+{% endblock %}

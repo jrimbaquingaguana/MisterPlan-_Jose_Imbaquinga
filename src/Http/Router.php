@@ -9,6 +9,10 @@ final class Router
     private array $routes = [];
     private array $dynamicRoutes = [];
 
+    public function __construct(private ?\Closure $renderError = null)
+    {
+    }
+
     public function add(string $method, string $path, callable $handler): void
     {
         if (str_contains($path, '/{id}')) {
@@ -37,7 +41,7 @@ final class Router
             }
         }
         if ($handlers === null) {
-            JsonResponse::send(['error' => 'Ruta no encontrada'], 404);
+            $this->error('Ruta no encontrada', 404);
             return;
         }
 
@@ -47,7 +51,7 @@ final class Router
             if (isset($handlers['GET']) && !isset($handlers['HEAD'])) {
                 $allowed[] = 'HEAD';
             }
-            JsonResponse::send(['error' => 'Método no permitido'], 405, [
+            $this->error('Método no permitido', 405, [
                 'Allow' => implode(', ', $allowed),
             ]);
             return;
@@ -63,5 +67,14 @@ final class Router
         if ($method !== 'HEAD') {
             echo $body;
         }
+    }
+
+    private function error(string $message, int $status, array $headers = []): void
+    {
+        if ($this->renderError !== null) {
+            ($this->renderError)($message, $status, $headers);
+            return;
+        }
+        JsonResponse::send(['error' => $message], $status, $headers);
     }
 }

@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace App\Controller;
 
-use App\Domain\ReservaNotFoundException;
 use App\Http\JsonResponse;
 use App\Validation\ReservaFiltroValidator;
+use App\Validation\ReservaIdValidator;
 use Closure;
 
 final class ReservaApiController
@@ -34,25 +34,15 @@ final class ReservaApiController
     public function show(string $id): void
     {
         header('Cache-Control: no-store');
-        $validatedId = $this->validateId($id);
+        $validatedId = ReservaIdValidator::parse($id);
         $service = ($this->createService)();
         JsonResponse::send($service->detail($validatedId));
-    }
-
-    private function validateId(string $id): int
-    {
-        $digits = ltrim($id, '0');
-        if (preg_match('/\A[0-9]+\z/', $id) !== 1 || $digits === '' || strlen($digits) > 10
-            || (strlen($digits) === 10 && strcmp($digits, '4294967295') > 0)) {
-            throw new ReservaNotFoundException();
-        }
-        return (int) $digits;
     }
 
     public function changeStatus(string $id, array $input): void
     {
         header('Cache-Control: no-store');
-        $validatedId = $this->validateId($id);
+        $validatedId = ReservaIdValidator::parse($id);
         $errors = (new \App\Validation\ReservaValidator())->validateStatus($input);
         if ($errors !== []) {
             throw new \App\Domain\ReservaValidationException($errors);
