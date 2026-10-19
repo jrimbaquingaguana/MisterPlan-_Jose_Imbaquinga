@@ -87,6 +87,10 @@ if (form) {
         }
         sending = true;
         submit.disabled = true;
+        if (document.activeElement === submit) {
+            status.tabIndex = -1;
+            status.focus();
+        }
         form.setAttribute('aria-busy', 'true');
         status.textContent = 'Creando reserva…';
         try {
@@ -99,6 +103,7 @@ if (form) {
             link.textContent = 'Ver detalle de la reserva';
             status.append(link);
             another.hidden = false;
+            if (document.activeElement === status) link.focus();
         } catch (error) {
             showErrors(error instanceof ApiError && error.status === 422 ? error.fields : {},
                 error instanceof ApiError ? error.message : 'No se pudo confirmar el resultado. Comprueba el listado antes de volver a enviar la reserva.');
@@ -106,6 +111,7 @@ if (form) {
             sending = false;
             form.removeAttribute('aria-busy');
             submit.disabled = created;
+            if (!created && document.activeElement === status) submit.focus();
         }
     });
     another.addEventListener('click', () => {

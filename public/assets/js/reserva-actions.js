@@ -20,6 +20,7 @@ export function actions(reserva) {
         const button = node('button', state === 'confirmada' ? 'Confirmar' : 'Cancelar');
         button.type = 'button';
         button.dataset.state = state;
+        button.setAttribute('aria-label', `${button.textContent} reserva ${reserva.id} de ${reserva.nombre_huesped}`);
         group.append(button);
     }
     return group;
@@ -42,6 +43,10 @@ export function initActions(root, { updated, reconcile }) {
         const id = button.closest('[data-reservation-id]').dataset.reservationId;
         if (pending.has(id) || !window.confirm(`¿${button.textContent} la reserva ${id}?`)) return;
         button.dataset.restoreFocus = String(document.activeElement === button);
+        if (button.dataset.restoreFocus === 'true') {
+            status.tabIndex = -1;
+            status.focus();
+        }
         pending.add(id);
         sync();
         status.textContent = `Actualizando reserva ${id}…`;
@@ -66,6 +71,7 @@ export function initActions(root, { updated, reconcile }) {
         } finally {
             pending.delete(id);
             sync();
+            if (button.isConnected && button.dataset.restoreFocus === 'true' && document.activeElement === status) button.focus();
         }
     });
     sync();

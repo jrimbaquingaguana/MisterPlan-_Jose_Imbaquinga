@@ -1,4 +1,4 @@
 <span class="reservation-actions" data-reservation-id="{{ reserva.id }}" hidden>
-    {% if reserva.estado == 'pendiente' %}<button type="button" data-state="confirmada">Confirmar</button>{% endif %}
-    {% if reserva.estado != 'cancelada' %}<button type="button" data-state="cancelada">Cancelar</button>{% endif %}
+    {% if reserva.estado == 'pendiente' %}<button type="button" data-state="confirmada" aria-label="Confirmar reserva {{ reserva.id }} de {{ reserva.nombre_huesped }}">Confirmar</button>{% endif %}
+    {% if reserva.estado != 'cancelada' %}<button type="button" data-state="cancelada" aria-label="Cancelar reserva {{ reserva.id }} de {{ reserva.nombre_huesped }}">Cancelar</button>{% endif %}
 </span>

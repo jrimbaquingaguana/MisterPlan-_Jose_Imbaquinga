@@ -6,7 +6,7 @@
     line-height: 1.6;
 }
 * { box-sizing: border-box; }
-body { margin: 0; }
+body { margin: 0; overflow-wrap: anywhere; }
 a { color: #155c75; text-underline-offset: 0.2em; }
 a:hover { color: #093b4e; }
 :focus-visible { outline: 3px solid #a64b00; outline-offset: 4px; }
@@ -29,17 +29,18 @@ h3 { font-size: 1rem; }
 label, dt { font-weight: 600; }
 input, select, button { font: inherit; min-height: 2.75rem; border-radius: 0.25rem; }
 input, select { width: 100%; min-width: 0; border: 1px solid #71838d; background: #fff; color: #243440; padding: 0.5rem; }
-button { background: #155c75; color: #fff; border: 1px solid #155c75; padding: 0.5rem 1.2rem; cursor: pointer; }
+button { max-width: 100%; white-space: normal; background: #155c75; color: #fff; border: 1px solid #155c75; padding: 0.5rem 1.2rem; cursor: pointer; }
 button:hover { background: #093b4e; }
 .filter-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 1rem; grid-column: 1 / -1; }
 .error-summary { border-left: 4px solid #a32424; background: #fff1f0; padding: 0.5rem 1rem; margin-bottom: 1.2rem; }
 .field-error { color: #9b2020; font-size: 0.9rem; margin: 0; }
 [aria-invalid="true"] { border-color: #a32424; }
-.table-scroll { overflow-x: auto; border: 1px solid #ccd6da; border-radius: 0.4rem; background: #fff; }
+.table-scroll { min-width: 0; max-width: 100%; overflow-x: auto; border: 1px solid #ccd6da; border-radius: 0.4rem; background: #fff; }
 table { width: 100%; border-collapse: collapse; text-align: left; }
 th, td { padding: 0.9rem 1rem; border-bottom: 1px solid #dce3e6; vertical-align: top; }
 thead th { background: #e9eff1; font-size: 0.9rem; }
 tbody th { font-weight: 600; }
+tbody th, tbody td:nth-child(2) { min-width: 10rem; }
 tbody tr:last-child > * { border-bottom: 0; }
 td time, .amount { white-space: nowrap; }
 .amount { text-align: right; font-variant-numeric: tabular-nums; }
@@ -50,7 +51,7 @@ td time, .amount { white-space: nowrap; }
 .pagination { display: flex; flex-wrap: wrap; gap: 1rem; margin-top: 1rem; }
 .pagination a { border: 1px solid #71838d; border-radius: 0.25rem; background: #fff; padding: 0.5rem 1rem; }
 .empty-state { padding: 1.5rem; background: #fff; border: 1px dashed #71838d; border-radius: 0.4rem; }
-.back-link { display: inline-block; margin-bottom: 0.5rem; }
+.back-link { display: inline-block; padding-block: 0.6rem; margin-bottom: 0.5rem; }
 .details { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 16rem), 1fr)); gap: 1.2rem 2rem; margin-bottom: 0; }
 .details div { min-width: 0; }
 dt { font-size: 0.9rem; color: #4c5e68; }
@@ -68,12 +69,12 @@ dd { margin: 0.25rem 0 0; overflow-wrap: anywhere; }
 .reservation-form { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 18rem), 1fr)); gap: 1.2rem; }
 .reservation-form textarea { width: 100%; min-width: 0; resize: vertical; font: inherit; border: 1px solid #71838d; border-radius: 0.25rem; padding: 0.5rem; color: #243440; background: #fff; }
 .reservation-form small { color: #4c5e68; }
-.reservation-form button:disabled { opacity: 0.65; cursor: not-allowed; }
 .reservation-form[aria-busy="true"] { cursor: progress; }
 .success-message { border-left: 4px solid #185c3a; background: #daf0e3; color: #185c3a; padding: 1rem; }
-.reservation-form :focus-visible { outline: 3px solid #155c75; outline-offset: 3px; }
 .reservation-actions { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-block: 0.5rem; }
 .reservation-actions[hidden] { display: none; }
 .reservation-actions button { padding: 0.35rem 0.7rem; }
-button:disabled { opacity: 0.65; cursor: not-allowed; }
+button:disabled { background: #e9eff1; color: #4c5e68; border-color: #71838d; cursor: not-allowed; }
+.filter-actions a { padding-block: 0.6rem; }
+td > a { display: inline-block; padding-block: 0.6rem; }
 #reservation-results[aria-busy="true"] { cursor: progress; }

@@ -56,9 +56,9 @@
     <p id="list-status" role="status" aria-live="polite"></p>
     <p id="action-status" role="status" aria-live="polite"></p>
     <section id="reservation-results" aria-labelledby="resultados-title">
+        <h2 id="resultados-title" tabindex="-1">Resultados</h2>
     {% if errors is empty %}
         <div data-results-content>
-            <h2 id="resultados-title" tabindex="-1">Resultados</h2>
             <p>{{ meta.total }} resultados · Página {{ meta.page }} de {{ max(1, meta.total_pages) }}</p>
             {% if valid_page_url %}
                 <div class="empty-state"><p>La página solicitada está fuera de los resultados.</p><a href="{{ valid_page_url }}">Volver a una página válida</a></div>

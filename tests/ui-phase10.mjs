@@ -2,7 +2,7 @@
 // Run: node tests/ui-phase10.mjs (Chrome installed, no npm dependencies).
 import { createServer } from 'node:http';
 import { execFileSync, spawn } from 'node:child_process';
-import { readFileSync, mkdirSync } from 'node:fs';
+import { readFileSync, mkdirSync, writeFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import assert from 'node:assert/strict';
 
@@ -26,6 +26,7 @@ const list = twig('reservas/list.html.twig', {
 });
 const detail = twig('reservas/show.html.twig', { reserva, back_url: '/reservas?page=1&per_page=2' });
 const creation = twig('reservas/new.html.twig', { api_url: '/api/reservas', detail_base_url: '/reservas/' });
+const errorPage = twig('error.html.twig', { status: 404, message: 'Reserva no encontrada' });
 const server = createServer((req, res) => {
     if (req.url.startsWith('/api/')) { res.writeHead(500); res.end('Unexpected real API access'); return; }
     if (req.url.startsWith('/assets/')) {
@@ -35,7 +36,7 @@ const server = createServer((req, res) => {
         res.end(readFileSync(resolve('public' + path))); return;
     }
     res.setHeader('Content-Type', 'text/html; charset=utf-8');
-    res.end(req.url.startsWith('/reservas/nueva') ? creation : /^\/reservas\/12/.test(req.url) ? detail : list);
+    res.end(req.url === '/error' ? errorPage : req.url.startsWith('/reservas/nueva') ? creation : /^\/reservas\/12/.test(req.url) ? detail : list);
 });
 await new Promise(done => server.listen(0, '127.0.0.1', done));
 const origin = `http://127.0.0.1:${server.address().port}`;
@@ -65,6 +66,12 @@ try {
     socket.addEventListener('message', event => {
         const message = JSON.parse(event.data);
         if (pending.has(message.id)) { pending.get(message.id)(message); pending.delete(message.id); }
+    });
+    const consoleErrors = [];
+    socket.addEventListener('message', event => {
+        const message = JSON.parse(event.data);
+        if (message.method === 'Runtime.exceptionThrown'
+            || (message.method === 'Runtime.consoleAPICalled' && message.params.type === 'error')) consoleErrors.push(message.params);
     });
     async function cdp(method, params = {}) {
         const id = ++sequence;
@@ -107,7 +114,10 @@ try {
                 if (mode === 'refreshFailure') readFailure = true;
                 return Response.json({ data: testReserva });
             }
-            if (method === 'POST') return Response.json({ data: { ...testReserva, estado: 'pendiente' } }, { status: 201 });
+            if (method === 'POST') {
+                if (mode === 'validation') return Response.json({ error: 'Datos inválidos', errors: { email_huesped: 'Email no válido.' } }, { status: 422 });
+                return Response.json({ data: { ...testReserva, estado: 'pendiente' } }, { status: 201 });
+            }
             if (/\\/api\\/reservas\\/12$/.test(url.pathname)) return Response.json({ data: testReserva });
             const q = url.searchParams.get('q') || '';
             // Deliberately ignore AbortSignal to exercise the generation guard too.
@@ -129,6 +139,7 @@ try {
         };
     `;
     console.log('Chrome connected; opening fixture');
+    await cdp('Runtime.enable');
     await navigate('/reservas');
     console.log('Fixture loaded');
     await evaluate(setup);
@@ -205,11 +216,65 @@ try {
     await navigate('/reservas/nueva'); await evaluate(setup);
     assert.equal(await evaluate(`(async () => {
         for (const [name, value] of Object.entries({ nombre_huesped: 'Test', email_huesped: 'test@example.com', nombre_alojamiento: 'Casa', fecha_entrada: '2027-01-01', fecha_salida: '2027-01-02', importe: '12.50' })) document.querySelector('[name=' + name + ']').value = value;
-        document.querySelector('#reserva-form').requestSubmit(); await wait(150);
-        check(calls.filter(call => call.method === 'POST').length === 1 && document.querySelector('#form-status').textContent.includes('Reserva creada correctamente'), 'Creation still works');
+        mode = 'validation'; document.querySelector('#reserva-form').requestSubmit(); await wait(100);
+        check(document.activeElement.name === 'email_huesped' && document.activeElement.getAttribute('aria-invalid') === 'true'
+            && document.querySelector('[name=nombre_huesped]').value === 'Test', 'Server errors preserve data and focus field');
+        mode = ''; document.querySelector('#reserva-form').requestSubmit(); document.querySelector('#reserva-form').requestSubmit(); await wait(150);
+        check(calls.filter(call => call.method === 'POST').length === 2 && document.querySelector('#form-status').textContent.includes('Reserva creada correctamente'), 'Creation prevents double submission');
+        check(!document.querySelector('[name=email_huesped]').hasAttribute('aria-invalid'), 'Creation clears previous errors');
         return true;
     })()`), true);
     console.log('Phase 9 creation: passed (intercepted POST)');
+    // Phase 11: behavior checks in the existing dependency-free browser harness.
+    for (const width of [320, 375, 768, 1280]) {
+        await cdp('Emulation.setDeviceMetricsOverride', { width, height: 900, deviceScaleFactor: 1, mobile: false });
+        for (const path of ['/reservas', '/reservas/nueva', '/reservas/12', '/error']) {
+            await navigate(path);
+            assert.equal(await evaluate(`(() => {
+                const long = 'Texto'.repeat(30);
+                for (const el of document.querySelectorAll('tbody th, tbody td:nth-child(2), .details div:nth-child(2) dd, .details div:nth-child(3) dd, .details div:nth-child(4) dd, .history p')) el.textContent = long;
+                const notes = document.querySelector('.notes');
+                if (notes) notes.textContent = long + '\\n' + long;
+                return document.documentElement.scrollWidth <= innerWidth;
+            })()`), true, `No document overflow: ${path} at ${width}`);
+            const shot = await cdp('Page.captureScreenshot', { format: 'png', captureBeyondViewport: false });
+            writeFileSync(resolve(`.phpunit.cache/phase11-${width}-${path.split('/').filter(Boolean).join('-')}.png`), Buffer.from(shot.data, 'base64'));
+        }
+    }
+    await navigate('/reservas'); await evaluate(setup);
+    assert.equal(await evaluate(`(async () => {
+        const q = document.querySelector('[name=q]'); q.focus();
+        change('q', 'Ana', 'input'); await wait(400);
+        check(document.activeElement === q, 'Search preserves focus');
+        change('desde', '2027-02-01'); change('hasta', '2027-01-01');
+        const end = document.querySelector('[name=hasta]');
+        check(end.getAttribute('aria-invalid') === 'true' && document.getElementById(end.getAttribute('aria-describedby')).textContent.includes('Hasta'), 'Filter error associated');
+        document.querySelector('[data-clear-filters]').click(); await wait(100);
+        check(!end.hasAttribute('aria-invalid') && !end.hasAttribute('aria-describedby'), 'Filter error cleared');
+        const button = document.querySelector('[data-state=confirmada]');
+        check(button.getAttribute('aria-label').includes('12'), 'Action identifies reservation');
+        button.focus(); button.click();
+        check(document.activeElement.id === 'action-status', 'Pending action has available focus');
+        await wait(200);
+        check(document.activeElement.id === 'resultados-title', 'List action restores focus');
+        return true;
+    })()`), true);
+    await navigate('/reservas/nueva'); await evaluate(setup);
+    assert.equal(await evaluate(`(() => {
+        document.querySelector('form').requestSubmit();
+        const first = document.querySelector('[name=nombre_huesped]');
+        return document.activeElement === first && first.getAttribute('aria-invalid') === 'true'
+            && !document.getElementById('error-nombre_huesped').hidden && calls.length === 0;
+    })()`), true);
+    await navigate('/reservas');
+    await cdp('Input.dispatchKeyEvent', { type: 'keyDown', key: 'Tab', code: 'Tab', windowsVirtualKeyCode: 9 });
+    await cdp('Input.dispatchKeyEvent', { type: 'keyUp', key: 'Tab', code: 'Tab', windowsVirtualKeyCode: 9 });
+    assert.equal(await evaluate(`document.activeElement.classList.contains('skip-link') && document.activeElement.getBoundingClientRect().width > 1`), true);
+    await cdp('Input.dispatchKeyEvent', { type: 'keyDown', key: 'Enter', code: 'Enter', windowsVirtualKeyCode: 13 });
+    await cdp('Input.dispatchKeyEvent', { type: 'keyUp', key: 'Enter', code: 'Enter', windowsVirtualKeyCode: 13 });
+    assert.equal(await evaluate(`document.activeElement.id === 'contenido'`), true);
+    assert.deepEqual(consoleErrors, [], 'No JavaScript exceptions or console errors');
+    console.log('Phase 11: four viewport widths with long text, search focus, associated/cleared filter errors, action focus, invalid creation passed');
     await cdp('Emulation.setScriptExecutionDisabled', { value: true });
     await navigate('/reservas');
     assert.equal(await evaluate(`document.querySelector('form').method === 'get'
@@ -222,6 +287,8 @@ try {
     await navigate('/reservas/12');
     assert.equal(await evaluate(`document.querySelector('.history').textContent.includes('<b>Creada</b>') && document.querySelector('[data-reservation-id]').hidden`), true);
     console.log('Without JavaScript: GET form, pagination navigation, detail and hidden actions passed (Twig fixtures)');
+    await navigate('/reservas/nueva');
+    assert.equal(await evaluate(`document.querySelector('noscript').textContent.includes('requiere JavaScript') && document.querySelector('[type=submit]').disabled`), true);
 } finally {
     socket?.close(); browser.kill(); server.closeAllConnections(); server.close();
 }

@@ -9,7 +9,7 @@ let sync;
 
 function render(reserva, button) {
     const hadFocus = document.activeElement === button
-        || (button.dataset.restoreFocus === 'true' && document.activeElement === document.body);
+        || (button.dataset.restoreFocus === 'true' && [document.body, document.getElementById('action-status')].includes(document.activeElement));
     state.replaceChildren(badge(reserva.estado));
     root.replaceChildren(actions(reserva));
     const list = node('ol', undefined, 'history');

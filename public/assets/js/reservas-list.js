@@ -34,12 +34,24 @@ function clearErrors() {
     });
 }
 
+function fieldError(control, message) {
+    const text = node('p', message, 'field-error');
+    text.id = `filter-error-${control.name}`;
+    text.dataset.filterErrors = '';
+    control.setAttribute('aria-invalid', 'true');
+    control.setAttribute('aria-describedby', text.id);
+    control.parentElement.append(text);
+}
+
 function valid() {
     clearErrors();
     const desde = form.elements.desde;
     const hasta = form.elements.hasta;
     if (!form.checkValidity() || (desde.value && hasta.value && desde.value > hasta.value)) {
-        if (desde.value && hasta.value && desde.value > hasta.value) hasta.setAttribute('aria-invalid', 'true');
+        for (const control of form.elements) {
+            if (control.willValidate && !control.validity.valid) fieldError(control, control.validationMessage);
+        }
+        if (desde.value && hasta.value && desde.value > hasta.value) fieldError(hasta, 'Hasta debe ser igual o posterior a desde.');
         status.textContent = 'Revisa los filtros: hasta debe ser igual o posterior a desde y las fechas deben ser válidas. Los resultados anteriores no corresponden a estos filtros.';
         return false;
     }
@@ -101,7 +113,7 @@ function render(data, params, focus) {
     if (focus || lostFocus) title.focus();
 }
 
-async function load(mode = 'push', focus = false, propagate = false) {
+async function load(mode = 'push', focus = false, propagate = false, quiet = false) {
     invalidate();
     if (!valid()) {
         if (propagate) throw new Error('Los filtros vigentes no son válidos.');
@@ -111,7 +123,7 @@ async function load(mode = 'push', focus = false, propagate = false) {
     controller = new AbortController();
     const params = criteria();
     results.setAttribute('aria-busy', 'true');
-    status.textContent = 'Actualizando resultados… Los resultados visibles aún corresponden a la consulta anterior.';
+    if (!quiet) status.textContent = 'Actualizando resultados… Los resultados visibles aún corresponden a la consulta anterior.';
     try {
         let data = await listReservas(params, controller.signal);
         if (current !== generation) return;
@@ -126,13 +138,13 @@ async function load(mode = 'push', focus = false, propagate = false) {
         params.set('per_page', data.meta.per_page);
         render(data, params, focus);
         if (mode !== 'none') history[mode === 'push' ? 'pushState' : 'replaceState'](null, '', url(params));
-        status.textContent = 'Resultados actualizados.';
+        status.textContent = `${data.meta.total} resultados actualizados. Página ${data.meta.page} de ${Math.max(1, data.meta.total_pages)}.`;
     } catch (error) {
         if (current !== generation || error.name === 'AbortError') return;
         for (const [name, message] of Object.entries(error.fields || {})) {
             const control = form.elements.namedItem(name);
-            if (control) control.setAttribute('aria-invalid', 'true');
-            if (typeof message === 'string') {
+            if (control && typeof message === 'string') fieldError(control, message);
+            else if (typeof message === 'string') {
                 const text = node('p', message, 'field-error'); text.dataset.filterErrors = ''; form.append(text);
             }
         }
@@ -147,12 +159,15 @@ function changed(mode, debounce = false) {
     invalidate();
     page = '1';
     if (!valid()) return;
-    status.textContent = 'Filtros modificados; los resultados visibles están pendientes de actualizar.';
-    if (debounce) timer = setTimeout(() => load(mode), 300);
+    if (debounce) timer = setTimeout(() => load(mode, false, false, true), 300);
     else void load(mode);
 }
 
-form.addEventListener('submit', event => { event.preventDefault(); changed('push'); });
+form.addEventListener('submit', event => {
+    event.preventDefault();
+    changed('push');
+    form.querySelector('[aria-invalid="true"]')?.focus();
+});
 form.elements.q.addEventListener('input', () => changed('replace', true));
 names.filter(name => name !== 'q').forEach(name => form.elements.namedItem(name).addEventListener('change', () => changed('push')));
 document.querySelector('[data-clear-filters]').addEventListener('click', event => {
@@ -181,13 +196,16 @@ syncActions = initActions(results, {
     updated: async (reserva, button) => {
         invalidate();
         const hadFocus = results.contains(document.activeElement)
-            || (button.dataset.restoreFocus === 'true' && document.activeElement === document.body);
+            || (button.dataset.restoreFocus === 'true' && [document.body, document.getElementById('action-status')].includes(document.activeElement));
         const title = node('h2', 'Resultados'); title.id = 'resultados-title'; title.tabIndex = -1;
         results.replaceChildren(title, node('p', 'Estado actualizado. Consultando resultados vigentes…'));
         if (hadFocus) title.focus();
         await load('replace', false, true);
     },
-    reconcile: async () => { invalidate(); await load('replace', false, true); },
+    reconcile: async (id, button) => {
+        const restore = button.dataset.restoreFocus === 'true' && document.activeElement === document.getElementById('action-status');
+        invalidate(); await load('replace', restore, true);
+    },
 });
 // Twig already rendered the initial query; no initial fetch is necessary.
 form.noValidate = true;
