@@ -8,7 +8,6 @@ final class JsonResponse
 {
     public static function send(array $data, int $status = 200, array $headers = []): void
     {
-        // Serializar antes de enviar cabeceras permite tratar fallos como un 500.
         $body = json_encode($data, JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE);
 
         http_response_code($status);

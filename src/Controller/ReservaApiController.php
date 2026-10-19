@@ -42,4 +42,17 @@ final class ReservaApiController
         $service = ($this->createService)();
         JsonResponse::send($service->detail((int) $digits));
     }
+
+    public function create(array $input): void
+    {
+        header('Cache-Control: no-store');
+        $errors = (new \App\Validation\ReservaValidator())->validateCreate($input);
+        if ($errors !== []) {
+            JsonResponse::send(['error' => 'Datos de reserva no válidos', 'errors' => $errors], 422);
+            return;
+        }
+        $service = ($this->createService)();
+        $result = $service->create($input);
+        JsonResponse::send($result, 201, ['Location' => '/api/reservas/' . $result['data']['id']]);
+    }
 }

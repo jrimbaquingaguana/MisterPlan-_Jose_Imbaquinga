@@ -28,6 +28,20 @@ final class ReservaRepository
         return array_map([$this, 'castRow'], $query->fetchAll());
     }
 
+    public function connection(): PDO
+    {
+        return $this->connection;
+    }
+
+    public function insert(array $data): int
+    {
+        $query = $this->connection->prepare('INSERT INTO reserva'
+            . ' (nombre_huesped, email_huesped, nombre_alojamiento, fecha_entrada, fecha_salida, importe, notas, estado)'
+            . " VALUES (:nombre_huesped, :email_huesped, :nombre_alojamiento, :fecha_entrada, :fecha_salida, :importe, :notas, 'pendiente')");
+        $query->execute($data);
+        return (int) $this->connection->lastInsertId();
+    }
+
     public function count(array $filters): int
     {
         [$where, $parameters] = $this->conditions($filters);
@@ -53,7 +67,6 @@ final class ReservaRepository
             $conditions[] = 'estado = :estado';
             $parameters[':estado'] = $filters['estado'];
         }
-        // La estancia ocupa [entrada, salida); el rango buscado incluye desde y hasta.
         foreach (['desde' => 'fecha_salida > :desde', 'hasta' => 'fecha_entrada <= :hasta'] as $field => $condition) {
             if (($filters[$field] ?? '') !== '') {
                 $conditions[] = $condition;

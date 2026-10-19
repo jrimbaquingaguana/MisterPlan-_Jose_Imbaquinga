@@ -53,6 +53,18 @@ $router->add('GET', '/api/reservas', static function () use ($controller): void 
     $controller->index($_GET);
 });
 $router->add('GET', '/api/reservas/{id}', [$controller, 'show']);
+$router->add('POST', '/api/reservas', static function () use ($controller): void {
+    $stream = fopen('php://input', 'rb');
+    if ($stream === false) {
+        throw new RuntimeException('No se pudo abrir la petición.');
+    }
+    try {
+        $input = \App\Http\JsonRequest::read($_SERVER['CONTENT_TYPE'] ?? '', $stream);
+    } finally {
+        fclose($stream);
+    }
+    $controller->create($input);
+});
 
 $path = explode('?', $_SERVER['REQUEST_URI'] ?? '/', 2)[0];
 if ($path === '/api/reservas' || str_starts_with($path, '/api/reservas/')) {

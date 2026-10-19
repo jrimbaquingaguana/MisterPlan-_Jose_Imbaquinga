@@ -37,4 +37,44 @@ final class ReservaService
         $reserva['eventos'] = $this->eventos->findByReservaId($id);
         return ['data' => $reserva];
     }
+
+    public function create(array $input): array
+    {
+        $errors = (new \App\Validation\ReservaValidator())->validateCreate($input);
+        if ($errors !== []) {
+            throw new \App\Domain\ReservaValidationException($errors);
+        }
+        $data = [];
+        foreach (['nombre_huesped', 'email_huesped', 'nombre_alojamiento'] as $field) {
+            $data[$field] = trim($input[$field]);
+        }
+        $data['fecha_entrada'] = $input['fecha_entrada'];
+        $data['fecha_salida'] = $input['fecha_salida'];
+        [$integer, $decimal] = array_pad(explode('.', (string) $input['importe'], 2), 2, '');
+        $data['importe'] = (ltrim($integer, '0') ?: '0') . '.' . str_pad($decimal, 2, '0');
+        $data['notas'] = isset($input['notas']) ? trim($input['notas']) : null;
+        if ($data['notas'] === '') {
+            $data['notas'] = null;
+        }
+        $connection = $this->reservas->connection();
+        if ($connection !== $this->eventos->connection()) {
+            throw new \LogicException('Los repositorios deben compartir PDO.');
+        }
+        try {
+            $connection->beginTransaction();
+            $id = $this->reservas->insert($data);
+            $this->eventos->insertCreated($id);
+            $result = $this->detail($id);
+            $connection->commit();
+            return $result;
+        } catch (\Throwable $error) {
+            try {
+                if ($connection->inTransaction()) {
+                    $connection->rollBack();
+                }
+            } catch (\Throwable $rollbackError) {
+            }
+            throw $error;
+        }
+    }
 }

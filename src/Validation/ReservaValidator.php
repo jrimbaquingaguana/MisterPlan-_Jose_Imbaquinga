@@ -89,7 +89,6 @@ final class ReservaValidator
         if (preg_match('/\A[0-9]+(?:\.[0-9]{1,2})?\z/', $value) !== 1) {
             return false;
         }
-        // Comparar la parte entera evita pérdida de precisión y desbordamientos.
         $integer = ltrim(explode('.', $value, 2)[0], '0');
         return strlen($integer) <= 8;
     }

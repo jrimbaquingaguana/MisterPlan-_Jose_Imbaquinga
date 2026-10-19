@@ -24,11 +24,18 @@ final class ErrorHandler
 
         set_exception_handler(static function (Throwable $error): void {
             restore_error_handler();
+            if ($error instanceof RequestException) {
+                JsonResponse::send(['error' => $error->getMessage()], $error->status);
+                return;
+            }
+            if ($error instanceof \App\Domain\ReservaValidationException) {
+                JsonResponse::send(['error' => $error->getMessage(), 'errors' => $error->errors], 422);
+                return;
+            }
             if ($error instanceof ReservaNotFoundException) {
                 JsonResponse::send(['error' => 'Reserva no encontrada'], 404);
                 return;
             }
-            // No registrar mensajes ni trazas: pueden contener datos sensibles.
             error_log('MisterPlan: excepción inesperada de tipo ' . get_class($error));
             JsonResponse::send(['error' => 'Error interno del servidor'], 500);
         });

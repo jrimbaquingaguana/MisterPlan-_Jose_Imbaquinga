@@ -25,4 +25,17 @@ final class ReservaEventoRepository
         }
         return $rows;
     }
+
+    public function connection(): PDO
+    {
+        return $this->connection;
+    }
+
+    public function insertCreated(int $reservaId): void
+    {
+        $query = $this->connection->prepare('INSERT INTO reserva_evento (reserva_id, tipo, descripcion)'
+            . " VALUES (:reserva_id, 'creada', 'Reserva creada con estado pendiente.')");
+        $query->bindValue(':reserva_id', $reservaId, PDO::PARAM_INT);
+        $query->execute();
+    }
 }

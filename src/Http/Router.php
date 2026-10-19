@@ -20,7 +20,6 @@ final class Router
 
     public function dispatch(string $method, string $uri): void
     {
-        // Conservar literalmente la ruta, incluida su barra final.
         $path = explode('?', $uri, 2)[0];
         $handlers = $this->routes[$path] ?? null;
         $arguments = [];
@@ -54,7 +53,6 @@ final class Router
             return;
         }
 
-        // Retener la salida también evita enviar HTML parcial si falla el manejador.
         ob_start();
         try {
             $handler(...$arguments);

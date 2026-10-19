@@ -8,6 +8,20 @@ use PHPUnit\Framework\TestCase;
 
 final class RouterTest extends TestCase
 {
+    public function testHeadNeverCallsCreation(): void
+    {
+        $router = new Router();
+        $router->add('GET', '/api/reservas', static function (): void { echo 'listado'; });
+        $router->add('POST', '/api/reservas', static function (): void { self::fail('HEAD no puede crear reservas.'); });
+        ob_start();
+        try {
+            $router->dispatch('HEAD', '/api/reservas');
+            self::assertSame('', ob_get_contents());
+        } finally {
+            ob_end_clean();
+        }
+    }
+
     #[DataProvider('requests')]
     public function testDynamicRoutes(string $method, string $uri, int $status, string $body, bool $called): void
     {

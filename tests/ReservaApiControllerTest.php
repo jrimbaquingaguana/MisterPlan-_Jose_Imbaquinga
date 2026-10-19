@@ -44,4 +44,18 @@ final class ReservaApiControllerTest extends TestCase
             yield [$id];
         }
     }
+
+    public function testInvalidCreationNeverConnectsAndAccumulatesErrors(): void
+    {
+        ob_start();
+        try {
+            $this->controller()->create(['id' => 1, 'estado' => 'confirmada', 'fecha_creacion' => '2026-01-01']);
+            $body = json_decode(ob_get_contents(), true, 512, JSON_THROW_ON_ERROR);
+        } finally {
+            ob_end_clean();
+        }
+        self::assertSame(422, http_response_code());
+        self::assertArrayHasKey('error', $body);
+        self::assertCount(9, $body['errors']);
+    }
 }
