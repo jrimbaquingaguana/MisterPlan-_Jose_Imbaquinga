@@ -1,160 +1,154 @@
 # MisterPlan — Reservas de alojamiento
 
-Aplicación desarrollada para la prueba técnica de MisterPlan. Permite consultar, filtrar, crear, confirmar y cancelar reservas, además de revisar su historial.
+Aplicación para la prueba técnica de MisterPlan, desarrollada con PHP nativo, MySQL, Twig y JavaScript vanilla. Permite consultar, filtrar, crear, confirmar y cancelar reservas, además de revisar su historial.
 
-Está hecha con PHP nativo, MySQL, Twig y JavaScript vanilla. No necesita npm ni compilación del frontend.
+**Demo publicada:** [Abrir MisterPlan](https://josericardoimbaquingaguana.alwaysdata.net/reservas)
 
-## Requisitos
+## Índice
+
+- [Tecnologías y requisitos](#tecnologías-y-requisitos)
+- [Instalación local](#instalación-local)
+- [Funcionalidades y API](#funcionalidades-y-api)
+- [Organización y decisiones](#organización-y-decisiones)
+- [Pruebas, GitHub Actions y Postman](#pruebas-github-actions-y-postman)
+- [Despliegue](#despliegue)
+- [Mejoras pendientes y escalabilidad](#mejoras-pendientes-y-escalabilidad)
+
+## Tecnologías y requisitos
 
 - PHP 8.1 o superior y Composer 2.
-- Extensiones PDO, pdo_mysql, mbstring e iconv.
-- Para PHPUnit: dom, libxml, xmlwriter y tokenizer.
-- MySQL 8.0.16 o superior, con InnoDB y utf8mb4.
-- Cliente MySQL o una herramienta como MySQL Workbench para importar el SQL.
-- Docker Compose, si se utiliza la base de datos incluida en el proyecto.
+- PDO, pdo_mysql e iconv. La aplicación incluye un polyfill de mbstring; PHPUnit necesita la extensión mbstring nativa, además de dom, libxml, xml, xmlwriter y tokenizer.
+- MySQL 8.0.16 o superior, con InnoDB y utf8mb4. La demo utiliza MariaDB compatible con MySQL.
+- Cliente MySQL o una herramienta de importación como MySQL Workbench o phpMyAdmin.
+- Docker Compose, solo si se elige la alternativa de MySQL en contenedor.
 
-Composer permite comprobar las extensiones y versiones necesarias.
+No se necesita npm para utilizar la aplicación. Node y Chrome solo son necesarios para las pruebas adicionales indicadas más adelante.
 
 ## Instalación local
 
-### 1. Instalar dependencias
+### 1. Clonar e instalar dependencias
 
-Desde la carpeta del proyecto:
-
-```sh
+```bash
+git clone https://github.com/jrimbaquingaguana/MisterPlan-_Jose_Imbaquinga.git
+cd MisterPlan-_Jose_Imbaquinga
 composer install
 composer check-platform-reqs
 ```
 
-### 2. Configurar la conexión
+### 2. Configurar el entorno
 
-El repositorio incluye un `.env` con valores de desarrollo. Ajusta la conexión a tu instalación:
+El `.env` versionado contiene valores locales de demostración. Ajusta la conexión a tu instalación; este es un ejemplo completo para desarrollo:
 
 ```dotenv
 APP_ENV=dev
 APP_DEBUG=false
 APP_PORT=8080
-
 DB_HOST=127.0.0.1
 DB_PORT=3306
 DB_NAME=misterplan_reservas
 DB_USER=misterplan_app
 DB_PASSWORD=misterplan_local_only
-
 MYSQL_ROOT_PASSWORD=root_local_only
 ```
 
-Las contraseñas de este ejemplo son solo para desarrollo. El usuario de conexión debe existir y tener permisos sobre la base de datos.
+Las contraseñas del ejemplo son ficticias y no deben reutilizarse en producción. Las variables reales del entorno tienen prioridad sobre `.env`. `MYSQL_ROOT_PASSWORD` solo se usa para inicializar MySQL con Compose.
 
-Las variables del entorno tienen prioridad sobre `.env`. `MYSQL_ROOT_PASSWORD` se utiliza únicamente para inicializar MySQL con Docker Compose.
+### 3. Preparar MySQL
 
-### 3. Crear la base de datos e importar los ejemplos
+Elige una de estas dos opciones. No se presupone ningún contenedor ni base de datos de otro proyecto.
 
-Conecta con una cuenta que tenga permisos para crear la base e importar las tablas:
+#### Opción A: MySQL ya instalado
 
-```sh
+Conecta con una cuenta administradora:
+
+```bash
 mysql --host=127.0.0.1 --port=3306 --user=root --password
 ```
 
-Desde el cliente, y estando en la carpeta del proyecto:
+En una instalación nueva, crea la base y el usuario del ejemplo:
 
 ```sql
 CREATE DATABASE misterplan_reservas
-CHARACTER SET utf8mb4
-COLLATE utf8mb4_unicode_ci;
-
-USE misterplan_reservas;
-
-SOURCE database/misterplan_reservas.sql;
+  CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+CREATE USER 'misterplan_app'@'127.0.0.1'
+  IDENTIFIED BY 'misterplan_local_only';
+GRANT SELECT, INSERT, UPDATE ON misterplan_reservas.*
+  TO 'misterplan_app'@'127.0.0.1';
 ```
 
-También puedes importar el archivo desde MySQL Workbench o phpMyAdmin, seleccionando primero la base de datos.
+Si ya tienes un usuario de aplicación, utiliza sus credenciales en `.env` y concédele esos permisos sobre la base propia. La importación del siguiente paso se realiza con la cuenta administradora, que también necesita permisos para crear y reemplazar tablas y ejecutar `LOCK TABLES`.
 
-El SQL contiene las tablas, sus restricciones y datos ficticios: nueve reservas y diecisiete eventos. Incluye instrucciones `DROP TABLE`, por lo que debe importarse en una base nueva: volver a ejecutarlo reemplaza las tablas existentes.
+#### Opción B: MySQL con Compose
 
-Para ejecutar la aplicación basta con un usuario con permisos `SELECT`, `INSERT` y `UPDATE` sobre esta base.
+`compose.yaml` levanta únicamente MySQL 8.4. Al inicializar un volumen nuevo crea la base y el usuario definidos por `DB_NAME`, `DB_USER` y `DB_PASSWORD`, y configura la contraseña root con `MYSQL_ROOT_PASSWORD`. Usa un `DB_USER` distinto de root, como el del ejemplo anterior.
 
-### Alternativa: MySQL con Docker
+El archivo actual publica MySQL en `127.0.0.0:${DB_PORT}`. Para esta opción, cambia `DB_HOST` a `127.0.0.0` en `.env`; `DB_PORT=3306` es el puerto publicado del ejemplo. Si está ocupado, elige otro libre, como 3307.
 
-El archivo `compose.yaml` levanta únicamente MySQL. PHP se ejecuta en el equipo y el SQL se importa por separado.
-
-En `.env`, utiliza un usuario distinto de `root`. Si el puerto 3306 ya está ocupado, configura:
-
-```dotenv
-DB_PORT=3307
-```
-
-Arranca el servicio:
-
-```sh
+```bash
 docker compose config --quiet
 docker compose up -d mysql
 docker compose ps
 ```
 
-Compose crea la base y el usuario definidos en `.env` al inicializar un volumen nuevo. Después importa el SQL siguiendo el paso anterior, usando el puerto publicado.
+PHP se ejecuta fuera del contenedor y conecta a la dirección y puerto publicados. Dentro del contenedor MySQL escucha en 3306. Compose no importa el SQL automáticamente.
 
-PHP conecta a `127.0.0.1:3307` si elegiste ese puerto. Dentro del contenedor, MySQL sigue escuchando en 3306.
+Los datos persisten en el volumen `mysql_data`. Cambiar las credenciales del `.env` después de inicializarlo no modifica los usuarios existentes; no es necesario borrar el volumen para actualizar el código.
 
-Los datos se conservan en un volumen. Cambiar las contraseñas del `.env` después del primer arranque no cambia las del MySQL ya inicializado.
+### 4. Importar tablas y datos ficticios
 
-### 4. Arrancar PHP
+Desde la raíz del proyecto, conecta a la base recién creada:
 
-```sh
+```bash
+mysql --host=127.0.0.1 --port=3306 --user=root --password misterplan_reservas
+```
+
+Si utilizas Compose, sustituye el host por `127.0.0.0` y el puerto por el valor de `DB_PORT`; introduce la contraseña `MYSQL_ROOT_PASSWORD`. En el cliente:
+
+```sql
+SOURCE database/misterplan_reservas.sql;
+```
+
+También puedes importar ese archivo desde una herramienta gráfica seleccionando la base de destino. Incluye tablas, restricciones, nueve reservas ficticias y diecisiete eventos. Contiene `DROP TABLE`: volver a importarlo reemplaza las tablas existentes, por lo que debe usarse en una base nueva y vacía.
+
+### 5. Arrancar PHP
+
+```bash
 php -S 127.0.0.1:8080 -t public public/index.php
 ```
 
-Abre:
+Abre [el listado local](http://127.0.0.1:8080/reservas). `APP_PORT` no arranca el servidor: el puerto efectivo es el indicado en el comando. Este servidor es solo para desarrollo.
 
-http://127.0.0.1:8080/reservas
+## Funcionalidades y API
 
-El puerto del comando debe coincidir con el que quieras utilizar; `APP_PORT` no inicia el servidor automáticamente.
+El listado combina filtros por estado, fechas y nombre del huésped, con paginación y acceso al detalle. Con JavaScript, las consultas, la creación y los cambios de estado funcionan sin recargar la página. Sin JavaScript se pueden consultar listado y detalle, filtrar y paginar mediante GET; la creación muestra un aviso de que requiere JS.
 
-## Uso
+Las reservas se crean en estado `pendiente`. Se permite pasar de pendiente a confirmada o cancelada, y de confirmada a cancelada. Cancelada es un estado terminal. Repetir el estado actual o intentar una transición no permitida devuelve 409 sin añadir eventos.
 
-El listado permite combinar estado, fechas y nombre del huésped. También incluye paginación y acceso al detalle de cada reserva.
-
-Con JavaScript, los filtros, la paginación, la creación y los cambios de estado se realizan sin recargar la página. Sin JavaScript se pueden consultar el listado y el detalle, y utilizar los filtros mediante GET.
-
-Las reservas nuevas empiezan en `pendiente`. Las transiciones permitidas son:
-
-- Pendiente a confirmada.
-- Pendiente a cancelada.
-- Confirmada a cancelada.
-
-Una reserva cancelada no puede reabrirse. Repetir el estado actual devuelve un conflicto y no genera otro evento.
-
-## API
-
-| Método | Ruta | Función |
+| Método | Ruta | Respuesta principal |
 | --- | --- | --- |
-| GET | `/api/health` | Comprobar que PHP responde, sin consultar MySQL |
-| GET | `/api/reservas` | Listar y filtrar reservas |
-| GET | `/api/reservas/{id}` | Consultar una reserva y su historial |
-| POST | `/api/reservas` | Crear una reserva |
-| PATCH | `/api/reservas/{id}/estado` | Confirmar o cancelar |
+| GET | `/api/health` | 200; comprueba PHP, sin consultar la base de datos |
+| GET | `/api/reservas` | 200; `data` y metadatos de paginación en `meta` |
+| GET | `/api/reservas/{id}` | 200; reserva e historial en `data` |
+| POST | `/api/reservas` | 201; reserva creada y cabecera `Location` |
+| PATCH | `/api/reservas/{id}/estado` | 200; detalle actualizado |
 
 Ejemplo de filtros:
 
 ```text
-/api/reservas?estado=confirmada&desde=2026-11-01&hasta=2026-11-30&q=Carlos&page=1&per_page=10
+/api/reservas?estado=confirmada&desde=2026-11-01&hasta=2026-11-30&q=Prueba&page=1&per_page=10
 ```
 
-El tamaño predeterminado es de diez reservas por página y el máximo es cien. El orden es por fecha de entrada descendente y, en caso de empate, por ID descendente.
+El tamaño predeterminado es 10 y el máximo 100. El orden es fecha de entrada descendente e ID descendente. La búsqueda por nombre trata `%` y `_` como caracteres literales.
 
-La búsqueda por nombre trata `%` y `_` como caracteres literales.
+El filtro de fechas selecciona estancias que se solapan con el rango: `fecha_salida > desde` y `fecha_entrada <= hasta`. Una estancia que termina en `desde` queda fuera; una que comienza en `hasta` queda incluida. Ambos límites son opcionales y, si se usan juntos, `hasta` debe ser igual o posterior a `desde`.
 
-El filtro de fechas busca estancias que coincidan con el rango seleccionado. Una reserva que sale el día `desde` queda fuera; una que entra el día `hasta` queda incluida. Ambos límites son opcionales.
-
-Las escrituras reciben un objeto JSON con `Content-Type: application/json`.
-
-Ejemplo de creación:
+Las escrituras reciben un objeto JSON con `Content-Type: application/json`. Ejemplo de creación:
 
 ```json
 {
-  "nombre_huesped": "María García",
-  "email_huesped": "maria@example.com",
-  "nombre_alojamiento": "Apartamento Sol",
+  "nombre_huesped": "Huésped de prueba",
+  "email_huesped": "prueba@example.com",
+  "nombre_alojamiento": "Apartamento de prueba",
   "fecha_entrada": "2027-01-10",
   "fecha_salida": "2027-01-12",
   "importe": "180.00",
@@ -162,71 +156,39 @@ Ejemplo de creación:
 }
 ```
 
-Para cambiar el estado:
+Para confirmar, enviar `{"estado":"confirmada"}` al endpoint de estado; para cancelar, `{"estado":"cancelada"}`.
 
-```json
-{
-  "estado": "confirmada"
-}
-```
-
-Los principales códigos de respuesta son:
-
-| Código | Significado |
-| --- | --- |
-| 200 | Consulta o cambio de estado correcto |
-| 201 | Reserva creada, con cabecera `Location` |
-| 400 | JSON o filtros incorrectos |
-| 404 | Ruta o reserva inexistente |
-| 405 | Método no permitido |
-| 409 | Transición de estado no permitida |
-| 413 | Cuerpo superior a 64 KiB |
-| 415 | Tipo de contenido no admitido |
-| 422 | Datos que no superan la validación |
-| 500 | Error interno |
-
-Los errores de validación incluyen un mapa `errors` con los mensajes de cada campo.
+Los errores devuelven `error` y, cuando corresponde, un mapa `errors` por campo. Los códigos son 400 para JSON o filtros incorrectos, 404 para ruta/reserva inexistente o ID inválido, 405 para método no permitido, 409 para conflictos, 413 para cuerpos mayores de 64 KiB, 415 para tipo de contenido incorrecto, 422 para validación y 500 para errores internos.
 
 ## Organización y decisiones
 
-Separé el código en controladores, servicios y repositorios. Los controladores gestionan HTTP, los servicios coordinan las reglas y transacciones, y los repositorios contienen las consultas SQL.
+La estructura sigue **Controller → Service → Repository**: HTTP en los controladores, reglas y transacciones en los servicios, y consultas PDO en los repositorios. Las vistas están en `templates/` y los recursos CSS y JS en `public/assets/`.
 
-Elegí MySQL porque es la base preferida en el enunciado. InnoDB permite guardar cada reserva y su evento dentro de la misma transacción. En los cambios de estado se utiliza `SELECT ... FOR UPDATE` para comprobar la transición sobre una fila bloqueada.
+MySQL con InnoDB permite guardar la reserva y su evento dentro de una misma transacción. Los cambios de estado utilizan `SELECT ... FOR UPDATE` para comprobar la transición sobre una fila bloqueada; si falla alguna escritura, se revierte la operación completa.
 
-Los importes se almacenan como `DECIMAL(10,2)` y se devuelven como cadenas para evitar cálculos monetarios con `float`.
+Los importes se almacenan como `DECIMAL(10,2)` y se normalizan y devuelven como cadenas, evitando cálculos monetarios con float en el servidor. La validación comprueba tipos, longitudes, email, fechas e importe, y rechaza campos controlados por el servidor. Se admiten fechas pasadas.
 
-La validación del servidor comprueba tipos, longitudes, email, fechas e importe. También rechaza campos que controla el servidor, como el ID o el estado inicial. Se permiten fechas pasadas porque el enunciado no las prohíbe.
+PDO utiliza consultas preparadas. Twig aplica autoescape y JavaScript inserta datos como texto mediante DOM. Los errores internos no muestran detalles SQL ni credenciales al cliente.
 
-Twig utiliza autoescape y JavaScript introduce los datos como texto mediante el DOM. No se utiliza `|raw`. Las consultas PDO usan parámetros preparados y los errores internos no muestran detalles al cliente.
+## Pruebas, GitHub Actions y Postman
 
-## Pruebas
+### Unitarias
 
-Validación del proyecto y pruebas unitarias:
-
-```sh
+```bash
 composer validate
 composer check-platform-reqs
 composer test
 ```
 
-Las pruebas unitarias no necesitan MySQL. PHPUnit requiere la extensión mbstring nativa habilitada en PHP CLI.
+Las pruebas unitarias usan dobles de PDO y no necesitan una base real. PHPUnit requiere mbstring nativa habilitada en el PHP de consola.
 
-Hay dos comprobaciones adicionales:
+### Integración MySQL
 
-```sh
-node tests/deploy-smoke.mjs
-node tests/ui-phase10.mjs
-```
-
-La primera necesita Node 18 o superior y comprueba el arranque HTTP, los recursos y las respuestas de error. La segunda necesita Node 22 o superior y Chrome; utiliza respuestas API simuladas para comprobar la interfaz. Se puede indicar el ejecutable del navegador mediante `CHROME_PATH`.
-
-### Integración con MySQL
-
-```sh
+```bash
 php integration/create-reservas.php
 ```
 
-Necesita estas variables de entorno:
+Configura estas variables reales del proceso; el script no las lee de `.env`:
 
 ```text
 MISTERPLAN_TEST_DB_HOST
@@ -236,55 +198,53 @@ MISTERPLAN_TEST_DB_USER
 MISTERPLAN_TEST_DB_PASSWORD
 ```
 
-La base debe estar vacía, ser exclusiva para pruebas y terminar en `_test`. No hay que importar el SQL previamente: el script crea y elimina sus tablas.
+La base debe estar vacía, ser exclusiva de pruebas y terminar en `_test`. No importes el SQL antes: el script crea y elimina sus tablas. Comprueba creación, rollback, conflictos y concurrencia; necesita permisos DDL/DML, `proc_open` y acceso a la información de sus conexiones. No se da por verificada esta integración en el hosting publicado.
 
-Estas pruebas comprueban creación, rollback, conflictos y concurrencia. Necesitan permisos para crear y eliminar tablas, `proc_open` y acceso a la información de las conexiones utilizada por el script.
+### HTTP y navegador
+
+```bash
+node tests/deploy-smoke.mjs
+node tests/ui-phase10.mjs
+```
+
+La comprobación HTTP necesita Node 18+ y PHP; revisa el arranque, los recursos y errores sin una base real. La prueba de interfaz necesita Node 22+, PHP y Chrome, y utiliza respuestas API simuladas. `CHROME_PATH` permite indicar el ejecutable del navegador. Estas pruebas se ejecutan aparte de las unitarias y no sustituyen la revisión manual con teclado y zoom.
+
+### GitHub Actions
+
+El workflow [PHP checks](.github/workflows/php-checks.yml) se ejecuta en push, pull request y de forma manual. Usa PHP 8.1 y Composer 2 para validar Composer, instalar dependencias, comprobar requisitos y sintaxis PHP y ejecutar las unitarias, sin cobertura ni servicio MySQL.
+
+Ya dispone de una ejecución correcta. Los resultados y logs se consultan en [Actions del repositorio](https://github.com/jrimbaquingaguana/MisterPlan-_Jose_Imbaquinga/actions), seleccionando **PHP checks**. La integración MySQL y las pruebas de navegador se ejecutan por separado.
+
+### Postman
+
+Importa [MisterPlan.postman_collection.json](postman/MisterPlan.postman_collection.json) y ajusta `base_url` al servidor local, por defecto `http://127.0.0.1:8080`, sin barra final. Ten PHP y MySQL disponibles. No hace falta un archivo de entorno separado ni introducir IDs existentes.
+
+Ejecuta las consultas o el ciclo **Crear, confirmar y cancelar** en orden de A a F. Cada ciclo crea una reserva ficticia y la deja cancelada; úsalo solo en una instancia propia o de pruebas. No hay DELETE ni limpieza automática. Si falta un ID válido, las peticiones dependientes se omiten; los 4xx de **Errores esperados** cuentan como resultados correctos.
 
 ## Despliegue
 
-La URL pública está pendiente.
+La demo está publicada en **alwaysdata**, con **PHP 8.4** y **MariaDB compatible con MySQL**. Las dependencias de producción se instalaron con:
 
-El servidor debe tener PHP y sus extensiones, MySQL y HTTPS. El directorio público debe apuntar a `public/`, dejando el código, las dependencias y la configuración fuera del acceso web.
-
-Para instalar las dependencias de producción:
-
-```sh
+```bash
 composer install --no-dev --optimize-autoloader
-composer check-platform-reqs --no-dev
 ```
 
-Se incluye `public/.htaccess` para Apache 2.4 con `mod_rewrite`. En otro servidor habrá que configurar el envío de las rutas dinámicas a `public/index.php`.
+El document root es `public/`, con el código, dependencias y configuración fuera del acceso web. Se incluye `public/.htaccess` para dirigir las rutas dinámicas a `index.php` mediante Apache/mod_rewrite, conservando los archivos estáticos.
 
-La aplicación está preparada para publicarse en la raíz de un dominio o subdominio. Las credenciales de producción se configuran mediante variables privadas del hosting, con `APP_ENV=production` y `APP_DEBUG=false`.
+La configuración actual utiliza un `.env` privado del servidor con `APP_ENV=production` y `APP_DEBUG=false`. Es distinto del `.env` local versionado y contiene la conexión propia del proveedor; sus credenciales no forman parte de esta documentación. La aplicación usa rutas desde la raíz del dominio.
 
-Antes de entregar falta comprobar el funcionamiento en el hosting y añadir aquí la URL definitiva.
+Para actualizar el código se instalan las dependencias correspondientes sin reimportar el SQL. La publicación de la dirección no implica que se haya auditado o verificado todo el flujo público.
 
-## Comprobaciones con GitHub Actions
+## Mejoras pendientes y escalabilidad
 
-El workflow **PHP checks** está configurado para ejecutarse en cada push y pull request, y también permite ejecución manual. Comprueba Composer y los requisitos de plataforma, instala las dependencias, revisa la sintaxis de los PHP propios versionados y ejecuta las pruebas unitarias con PHP 8.1, sin una base de datos real ni cobertura.
+La aplicación no incluye autenticación ni autorización: cualquier persona con acceso puede consultar y modificar reservas. La demo debe utilizar exclusivamente datos ficticios. Antes de utilizar datos reales, la prioridad es incorporar control de acceso.
 
-Los resultados y logs se consultan en la pestaña **Actions** del repositorio, seleccionando **PHP checks** y una ejecución. La integración MySQL y las pruebas de navegador se ejecutan aparte. La ejecución real en GitHub queda pendiente hasta subir el workflow.
+Otras mejoras son la idempotencia de creación para evitar duplicados por reintentos, las migraciones incrementales y los límites de peticiones. Deshabilitar el botón durante un envío evita dobles clics, pero no resuelve un reintento después de una respuesta de red ambigua.
 
-## Probar la API con Postman
+### 1.000 reservas por hora
 
-Importa `postman/MisterPlan.postman_collection.json` en Postman y ajusta la variable de colección `base_url` al puerto local utilizado (por defecto, `http://127.0.0.1:8080`, sin barra final). No hace falta importar un entorno ni introducir IDs existentes. Arranca PHP con el comando local anterior y ten disponible MySQL con el esquema importado.
+Son unas 0,28 creaciones por segundo de promedio. Los picos, las consultas del listado y la concurrencia sobre una misma reserva pueden generar una carga bastante mayor.
 
-Puedes ejecutar la carpeta **Consultas** o el ciclo **Crear, confirmar y cancelar**, siempre en orden de A a F. El ciclo genera y guarda su propio ID; si falta, las peticiones dependientes se omiten y la consola explica el motivo. Utiliza una versión de Postman que soporte `pm.execution.skipRequest()` y evita variables de entorno con los mismos nombres que las de colección.
+Primero mediría latencias, consultas lentas, conexiones y bloqueos. Revisaría los planes con `EXPLAIN` y la utilidad de los índices con datos representativos, especialmente en listado/COUNT y en la búsqueda `LIKE '%texto%'`, que no aprovecha un B-tree como una búsqueda por prefijo.
 
-Cada ejecución del ciclo crea otra reserva ficticia y la deja cancelada. Úsalo solo en una instancia propia o exclusiva de pruebas; no hay DELETE ni limpieza automática. En **Errores esperados**, los códigos 4xx indicados cuentan como comprobaciones correctas.
-
-## Qué mejoraría con más tiempo
-
-Añadiría autenticación y autorización antes de utilizar datos reales. Actualmente, cualquier persona con acceso a la aplicación puede consultar y modificar reservas.
-
-También incorporaría idempotencia en la creación para evitar duplicados por reintentos, límites de peticiones y migraciones para actualizar el esquema sin reimportarlo. El bloqueo del botón evita dobles envíos desde la interfaz, pero no garantiza que un reintento tras un fallo de red no duplique una reserva.
-
-## Escalabilidad: 1.000 reservas por hora
-
-Son unas 0,28 creaciones por segundo de promedio, aunque los picos y las consultas pueden aumentar bastante la carga.
-
-Primero mediría tiempos de respuesta, consultas lentas, conexiones y bloqueos. Revisaría los planes con `EXPLAIN` y comprobaría los índices con un volumen de datos representativo.
-
-La búsqueda por nombre con `LIKE '%texto%'` merece especial atención al crecer, porque un índice B-tree convencional no permite resolverla como una búsqueda por prefijo.
-
-Después haría pruebas de carga con peticiones concurrentes. Si las mediciones muestran un problema, evaluaría caché o réplicas de lectura, teniendo en cuenta que los resultados deben mantenerse coherentes después de crear o cambiar una reserva.
+Después realizaría pruebas de carga con picos y cambios simultáneos. Solo si las mediciones lo justifican evaluaría cachés o réplicas, considerando la coherencia de los resultados tras crear o cambiar una reserva.
