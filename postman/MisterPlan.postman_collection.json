@@ -1,0 +1,1130 @@
+{
+  "info": {
+    "name": "MisterPlan · API de reservas",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "description": "Consultas, ciclo ficticio y errores esperados de la API real. Ejecutar el ciclo A–F en orden, solo contra una instancia propia o exclusiva de pruebas. Cada repetición crea otra reserva ficticia y la deja cancelada; la API no ofrece DELETE ni limpieza automática. No requiere credenciales ni existe un mecanismo CSRF en la API actual. Variables de colección: base_url (sin barra final), reserva_id y marca_prueba; no definir variables con esos mismos nombres en otros ámbitos. Las dependientes se omiten mediante pm.execution.skipRequest() si falta el ID/marca; ver la consola de Postman. Requiere Postman con soporte de skipRequest: https://learning.postman.com/docs/tests-and-scripts/write-scripts/postman-sandbox-reference/pm-execution/"
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://127.0.0.1:8080",
+      "type": "string"
+    },
+    {
+      "key": "reserva_id",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "marca_prueba",
+      "value": "",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "Consultas",
+      "item": [
+        {
+          "name": "Health",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/api/health"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Content-Type JSON', function () {",
+                  "    pm.expect(pm.response.headers.get('Content-Type')).to.match(/^application\\/json(?:\\s*;|$)/i);",
+                  "});",
+                  "const body = pm.response.json();",
+                  "pm.test('HTTP 200', function () { pm.expect(pm.response.code).to.eql(200); });",
+                  "pm.test('Estado del servicio', function () { pm.expect(body.status).to.eql('ok'); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Listado",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/api/reservas"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Content-Type JSON', function () {",
+                  "    pm.expect(pm.response.headers.get('Content-Type')).to.match(/^application\\/json(?:\\s*;|$)/i);",
+                  "});",
+                  "const body = pm.response.json();",
+                  "pm.test('HTTP 200', function () { pm.expect(pm.response.code).to.eql(200); });",
+                  "function checkReserva(data) {",
+                  "    pm.expect(data).to.be.an('object');",
+                  "    pm.expect(Number.isInteger(data.id) && data.id > 0 && data.id <= 4294967295).to.eql(true);",
+                  "    pm.expect(data.importe).to.be.a('string').and.match(/^(?:0|[1-9][0-9]{0,7})\\.[0-9]{2}$/);",
+                  "    pm.expect(['pendiente', 'confirmada', 'cancelada']).to.include(data.estado);",
+                  "    for (const field of ['nombre_huesped', 'email_huesped', 'nombre_alojamiento', 'fecha_entrada', 'fecha_salida', 'fecha_creacion']) {",
+                  "        pm.expect(data[field], field).to.be.a('string');",
+                  "    }",
+                  "}",
+                  "pm.test('Listado y metadatos válidos sin asumir totales', function () {",
+                  "    pm.expect(body.data).to.be.an('array');",
+                  "    pm.expect(body.meta).to.be.an('object');",
+                  "    for (const key of ['page', 'per_page', 'total', 'total_pages']) {",
+                  "        pm.expect(Number.isInteger(body.meta[key]), key).to.eql(true);",
+                  "    }",
+                  "    pm.expect(body.meta.page).to.be.at.least(1);",
+                  "    pm.expect(body.meta.per_page).to.be.within(1, 100);",
+                  "    pm.expect(body.meta.total).to.be.at.least(0);",
+                  "    pm.expect(body.meta.total_pages).to.eql(Math.ceil(body.meta.total / body.meta.per_page));",
+                  "    pm.expect(body.data.length).to.be.at.most(body.meta.per_page);",
+                  "    pm.expect(body.meta.total).to.be.at.least(body.data.length);",
+                  "    body.data.forEach(checkReserva);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Listado paginado",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/api/reservas?page=1&per_page=2"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Content-Type JSON', function () {",
+                  "    pm.expect(pm.response.headers.get('Content-Type')).to.match(/^application\\/json(?:\\s*;|$)/i);",
+                  "});",
+                  "const body = pm.response.json();",
+                  "pm.test('HTTP 200', function () { pm.expect(pm.response.code).to.eql(200); });",
+                  "function checkReserva(data) {",
+                  "    pm.expect(data).to.be.an('object');",
+                  "    pm.expect(Number.isInteger(data.id) && data.id > 0 && data.id <= 4294967295).to.eql(true);",
+                  "    pm.expect(data.importe).to.be.a('string').and.match(/^(?:0|[1-9][0-9]{0,7})\\.[0-9]{2}$/);",
+                  "    pm.expect(['pendiente', 'confirmada', 'cancelada']).to.include(data.estado);",
+                  "    for (const field of ['nombre_huesped', 'email_huesped', 'nombre_alojamiento', 'fecha_entrada', 'fecha_salida', 'fecha_creacion']) {",
+                  "        pm.expect(data[field], field).to.be.a('string');",
+                  "    }",
+                  "}",
+                  "pm.test('Listado y metadatos válidos sin asumir totales', function () {",
+                  "    pm.expect(body.data).to.be.an('array');",
+                  "    pm.expect(body.meta).to.be.an('object');",
+                  "    for (const key of ['page', 'per_page', 'total', 'total_pages']) {",
+                  "        pm.expect(Number.isInteger(body.meta[key]), key).to.eql(true);",
+                  "    }",
+                  "    pm.expect(body.meta.page).to.be.at.least(1);",
+                  "    pm.expect(body.meta.per_page).to.be.within(1, 100);",
+                  "    pm.expect(body.meta.total).to.be.at.least(0);",
+                  "    pm.expect(body.meta.total_pages).to.eql(Math.ceil(body.meta.total / body.meta.per_page));",
+                  "    pm.expect(body.data.length).to.be.at.most(body.meta.per_page);",
+                  "    pm.expect(body.meta.total).to.be.at.least(body.data.length);",
+                  "    body.data.forEach(checkReserva);",
+                  "});",
+                  "pm.test('Paginación solicitada', function () { pm.expect(body.meta.page).to.eql(1); pm.expect(body.meta.per_page).to.eql(2); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Filtros combinados",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/api/reservas?estado=pendiente&desde=2020-01-01&hasta=2099-12-31&q=Postman"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Content-Type JSON', function () {",
+                  "    pm.expect(pm.response.headers.get('Content-Type')).to.match(/^application\\/json(?:\\s*;|$)/i);",
+                  "});",
+                  "const body = pm.response.json();",
+                  "pm.test('HTTP 200', function () { pm.expect(pm.response.code).to.eql(200); });",
+                  "function checkReserva(data) {",
+                  "    pm.expect(data).to.be.an('object');",
+                  "    pm.expect(Number.isInteger(data.id) && data.id > 0 && data.id <= 4294967295).to.eql(true);",
+                  "    pm.expect(data.importe).to.be.a('string').and.match(/^(?:0|[1-9][0-9]{0,7})\\.[0-9]{2}$/);",
+                  "    pm.expect(['pendiente', 'confirmada', 'cancelada']).to.include(data.estado);",
+                  "    for (const field of ['nombre_huesped', 'email_huesped', 'nombre_alojamiento', 'fecha_entrada', 'fecha_salida', 'fecha_creacion']) {",
+                  "        pm.expect(data[field], field).to.be.a('string');",
+                  "    }",
+                  "}",
+                  "pm.test('Listado y metadatos válidos sin asumir totales', function () {",
+                  "    pm.expect(body.data).to.be.an('array');",
+                  "    pm.expect(body.meta).to.be.an('object');",
+                  "    for (const key of ['page', 'per_page', 'total', 'total_pages']) {",
+                  "        pm.expect(Number.isInteger(body.meta[key]), key).to.eql(true);",
+                  "    }",
+                  "    pm.expect(body.meta.page).to.be.at.least(1);",
+                  "    pm.expect(body.meta.per_page).to.be.within(1, 100);",
+                  "    pm.expect(body.meta.total).to.be.at.least(0);",
+                  "    pm.expect(body.meta.total_pages).to.eql(Math.ceil(body.meta.total / body.meta.per_page));",
+                  "    pm.expect(body.data.length).to.be.at.most(body.meta.per_page);",
+                  "    pm.expect(body.meta.total).to.be.at.least(body.data.length);",
+                  "    body.data.forEach(checkReserva);",
+                  "});",
+                  "pm.test('Cada resultado respeta los filtros; cero resultados es válido', function () {",
+                  "    body.data.forEach(data => {",
+                  "        pm.expect(data.estado).to.eql('pendiente');",
+                  "        pm.expect(data.fecha_salida > '2020-01-01').to.eql(true);",
+                  "        pm.expect(data.fecha_entrada <= '2099-12-31').to.eql(true);",
+                  "        pm.expect(data.nombre_huesped.toLowerCase()).to.include('postman');",
+                  "    });",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Búsqueda sin resultados",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/api/reservas?q={{busqueda_sin_resultados}}",
+            "description": "Genera una búsqueda única en cada envío, sin depender de nombres o totales existentes."
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.variables.set('busqueda_sin_resultados', 'sin-resultados-' + pm.variables.replaceIn('{{$guid}}'));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Content-Type JSON', function () {",
+                  "    pm.expect(pm.response.headers.get('Content-Type')).to.match(/^application\\/json(?:\\s*;|$)/i);",
+                  "});",
+                  "const body = pm.response.json();",
+                  "pm.test('HTTP 200', function () { pm.expect(pm.response.code).to.eql(200); });",
+                  "function checkReserva(data) {",
+                  "    pm.expect(data).to.be.an('object');",
+                  "    pm.expect(Number.isInteger(data.id) && data.id > 0 && data.id <= 4294967295).to.eql(true);",
+                  "    pm.expect(data.importe).to.be.a('string').and.match(/^(?:0|[1-9][0-9]{0,7})\\.[0-9]{2}$/);",
+                  "    pm.expect(['pendiente', 'confirmada', 'cancelada']).to.include(data.estado);",
+                  "    for (const field of ['nombre_huesped', 'email_huesped', 'nombre_alojamiento', 'fecha_entrada', 'fecha_salida', 'fecha_creacion']) {",
+                  "        pm.expect(data[field], field).to.be.a('string');",
+                  "    }",
+                  "}",
+                  "pm.test('Listado y metadatos válidos sin asumir totales', function () {",
+                  "    pm.expect(body.data).to.be.an('array');",
+                  "    pm.expect(body.meta).to.be.an('object');",
+                  "    for (const key of ['page', 'per_page', 'total', 'total_pages']) {",
+                  "        pm.expect(Number.isInteger(body.meta[key]), key).to.eql(true);",
+                  "    }",
+                  "    pm.expect(body.meta.page).to.be.at.least(1);",
+                  "    pm.expect(body.meta.per_page).to.be.within(1, 100);",
+                  "    pm.expect(body.meta.total).to.be.at.least(0);",
+                  "    pm.expect(body.meta.total_pages).to.eql(Math.ceil(body.meta.total / body.meta.per_page));",
+                  "    pm.expect(body.data.length).to.be.at.most(body.meta.per_page);",
+                  "    pm.expect(body.meta.total).to.be.at.least(body.data.length);",
+                  "    body.data.forEach(checkReserva);",
+                  "});",
+                  "pm.test('La marca aleatoria no encuentra reservas', function () { pm.expect(body.data).to.deep.eql([]); pm.expect(body.meta.total).to.eql(0); });"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Crear, confirmar y cancelar",
+      "description": "Ejecutar A–F en orden. Repetir crea otra reserva ficticia. Usar solo una instancia propia/de pruebas; no hay eliminación automática.",
+      "item": [
+        {
+          "name": "A. Crear reserva",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/api/reservas",
+            "description": "Ejecutar primero y solo en una instancia propia/de pruebas. Borra el ID anterior antes de enviar. Cada ejecución crea otra reserva ficticia; no hay DELETE ni limpieza automática.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre_huesped\": \"Postman {{marca_prueba}}\",\n  \"email_huesped\": \"postman@example.com\",\n  \"nombre_alojamiento\": \"Alojamiento ficticio Postman\",\n  \"fecha_entrada\": \"2030-01-10\",\n  \"fecha_salida\": \"2030-01-12\",\n  \"importe\": \"320.00\",\n  \"notas\": \"Prueba ficticia de Postman {{marca_prueba}}. Ciclo crear, confirmar y cancelar.\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.collectionVariables.set('reserva_id', '');",
+                  "pm.variables.set('reserva_id', '');",
+                  "const marca = 'postman-' + pm.variables.replaceIn('{{$guid}}');",
+                  "pm.collectionVariables.set('marca_prueba', marca);",
+                  "pm.variables.set('marca_prueba', marca);"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Content-Type JSON', function () {",
+                  "    pm.expect(pm.response.headers.get('Content-Type')).to.match(/^application\\/json(?:\\s*;|$)/i);",
+                  "});",
+                  "const body = pm.response.json();",
+                  "pm.test('HTTP 201', function () { pm.expect(pm.response.code).to.eql(201); });",
+                  "function checkReserva(data) {",
+                  "    pm.expect(data).to.be.an('object');",
+                  "    pm.expect(Number.isInteger(data.id) && data.id > 0 && data.id <= 4294967295).to.eql(true);",
+                  "    pm.expect(data.importe).to.be.a('string').and.match(/^(?:0|[1-9][0-9]{0,7})\\.[0-9]{2}$/);",
+                  "    pm.expect(['pendiente', 'confirmada', 'cancelada']).to.include(data.estado);",
+                  "    for (const field of ['nombre_huesped', 'email_huesped', 'nombre_alojamiento', 'fecha_entrada', 'fecha_salida', 'fecha_creacion']) {",
+                  "        pm.expect(data[field], field).to.be.a('string');",
+                  "    }",
+                  "}",
+                  "pm.test('Creación válida, Location e ID guardado', function () {",
+                  "    pm.expect(pm.response.code).to.eql(201);",
+                  "    pm.expect(pm.response.headers.get('Content-Type')).to.match(/^application\\/json(?:\\s*;|$)/i);",
+                  "    checkReserva(body.data);",
+                  "    pm.expect(body.data.estado).to.eql('pendiente');",
+                  "    pm.expect(body.data.nombre_huesped).to.eql('Postman ' + pm.collectionVariables.get('marca_prueba'));",
+                  "    pm.expect(body.data.importe).to.eql('320.00');",
+                  "    pm.expect(body.data.eventos).to.be.an('array');",
+                  "    pm.expect(body.data.eventos.map(event => event.tipo)).to.deep.eql(['creada']);",
+                  "    pm.expect(pm.response.headers.get('Location')).to.eql('/api/reservas/' + body.data.id);",
+                  "    // Solo guardar tras validar la respuesta completa anterior.",
+                  "    pm.collectionVariables.set('reserva_id', String(body.data.id));",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "B. Consultar detalle pendiente",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/api/reservas/{{reserva_id}}"
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const id = String(pm.collectionVariables.get('reserva_id') || '');",
+                  "const marca = String(pm.collectionVariables.get('marca_prueba') || '');",
+                  "if (!/^[1-9][0-9]{0,9}$/.test(id) || Number(id) > 4294967295 || !/^postman-[0-9a-f-]{36}$/i.test(marca)) {",
+                  "    console.warn('Petición omitida: no hay reserva_id y marca_prueba válidos. Ejecuta A. Crear reserva y continúa el ciclo en orden; no uses IDs existentes.');",
+                  "    pm.execution.skipRequest();",
+                  "} else {",
+                  "    // El ID de colección prevalece sobre cualquier variable de entorno antigua.",
+                  "    pm.variables.set('reserva_id', id);",
+                  "    pm.variables.set('marca_prueba', marca);",
+                  "}"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Content-Type JSON', function () {",
+                  "    pm.expect(pm.response.headers.get('Content-Type')).to.match(/^application\\/json(?:\\s*;|$)/i);",
+                  "});",
+                  "const body = pm.response.json();",
+                  "pm.test('HTTP 200', function () { pm.expect(pm.response.code).to.eql(200); });",
+                  "function checkReserva(data) {",
+                  "    pm.expect(data).to.be.an('object');",
+                  "    pm.expect(Number.isInteger(data.id) && data.id > 0 && data.id <= 4294967295).to.eql(true);",
+                  "    pm.expect(data.importe).to.be.a('string').and.match(/^(?:0|[1-9][0-9]{0,7})\\.[0-9]{2}$/);",
+                  "    pm.expect(['pendiente', 'confirmada', 'cancelada']).to.include(data.estado);",
+                  "    for (const field of ['nombre_huesped', 'email_huesped', 'nombre_alojamiento', 'fecha_entrada', 'fecha_salida', 'fecha_creacion']) {",
+                  "        pm.expect(data[field], field).to.be.a('string');",
+                  "    }",
+                  "}",
+                  "pm.test('Reserva propia, estado e historial del ciclo', function () {",
+                  "    checkReserva(body.data);",
+                  "    pm.expect(body.data.id).to.eql(Number(pm.collectionVariables.get('reserva_id')));",
+                  "    pm.expect(body.data.nombre_huesped).to.eql('Postman ' + pm.collectionVariables.get('marca_prueba'));",
+                  "    pm.expect(body.data.estado).to.eql('pendiente');",
+                  "    pm.expect(body.data.eventos).to.be.an('array');",
+                  "    pm.expect(body.data.eventos.map(event => event.tipo)).to.deep.eql([\"creada\"]);",
+                  "    const ids = new Set();",
+                  "    body.data.eventos.forEach(event => {",
+                  "        pm.expect(Number.isInteger(event.id) && event.id > 0).to.eql(true);",
+                  "        pm.expect(event.reserva_id).to.eql(body.data.id);",
+                  "        pm.expect(event.descripcion).to.be.a('string').and.not.empty;",
+                  "        pm.expect(event.fecha_creacion).to.be.a('string').and.not.empty;",
+                  "        ids.add(event.id);",
+                  "    });",
+                  "    pm.expect(ids.size).to.eql(body.data.eventos.length);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "C. Confirmar",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/api/reservas/{{reserva_id}}/estado",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"estado\": \"confirmada\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const id = String(pm.collectionVariables.get('reserva_id') || '');",
+                  "const marca = String(pm.collectionVariables.get('marca_prueba') || '');",
+                  "if (!/^[1-9][0-9]{0,9}$/.test(id) || Number(id) > 4294967295 || !/^postman-[0-9a-f-]{36}$/i.test(marca)) {",
+                  "    console.warn('Petición omitida: no hay reserva_id y marca_prueba válidos. Ejecuta A. Crear reserva y continúa el ciclo en orden; no uses IDs existentes.');",
+                  "    pm.execution.skipRequest();",
+                  "} else {",
+                  "    // El ID de colección prevalece sobre cualquier variable de entorno antigua.",
+                  "    pm.variables.set('reserva_id', id);",
+                  "    pm.variables.set('marca_prueba', marca);",
+                  "}"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Content-Type JSON', function () {",
+                  "    pm.expect(pm.response.headers.get('Content-Type')).to.match(/^application\\/json(?:\\s*;|$)/i);",
+                  "});",
+                  "const body = pm.response.json();",
+                  "pm.test('HTTP 200', function () { pm.expect(pm.response.code).to.eql(200); });",
+                  "function checkReserva(data) {",
+                  "    pm.expect(data).to.be.an('object');",
+                  "    pm.expect(Number.isInteger(data.id) && data.id > 0 && data.id <= 4294967295).to.eql(true);",
+                  "    pm.expect(data.importe).to.be.a('string').and.match(/^(?:0|[1-9][0-9]{0,7})\\.[0-9]{2}$/);",
+                  "    pm.expect(['pendiente', 'confirmada', 'cancelada']).to.include(data.estado);",
+                  "    for (const field of ['nombre_huesped', 'email_huesped', 'nombre_alojamiento', 'fecha_entrada', 'fecha_salida', 'fecha_creacion']) {",
+                  "        pm.expect(data[field], field).to.be.a('string');",
+                  "    }",
+                  "}",
+                  "pm.test('Reserva propia, estado e historial del ciclo', function () {",
+                  "    checkReserva(body.data);",
+                  "    pm.expect(body.data.id).to.eql(Number(pm.collectionVariables.get('reserva_id')));",
+                  "    pm.expect(body.data.nombre_huesped).to.eql('Postman ' + pm.collectionVariables.get('marca_prueba'));",
+                  "    pm.expect(body.data.estado).to.eql('confirmada');",
+                  "    pm.expect(body.data.eventos).to.be.an('array');",
+                  "    pm.expect(body.data.eventos.map(event => event.tipo)).to.deep.eql([\"creada\",\"confirmada\"]);",
+                  "    const ids = new Set();",
+                  "    body.data.eventos.forEach(event => {",
+                  "        pm.expect(Number.isInteger(event.id) && event.id > 0).to.eql(true);",
+                  "        pm.expect(event.reserva_id).to.eql(body.data.id);",
+                  "        pm.expect(event.descripcion).to.be.a('string').and.not.empty;",
+                  "        pm.expect(event.fecha_creacion).to.be.a('string').and.not.empty;",
+                  "        ids.add(event.id);",
+                  "    });",
+                  "    pm.expect(ids.size).to.eql(body.data.eventos.length);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "D. Cancelar",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/api/reservas/{{reserva_id}}/estado",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"estado\": \"cancelada\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const id = String(pm.collectionVariables.get('reserva_id') || '');",
+                  "const marca = String(pm.collectionVariables.get('marca_prueba') || '');",
+                  "if (!/^[1-9][0-9]{0,9}$/.test(id) || Number(id) > 4294967295 || !/^postman-[0-9a-f-]{36}$/i.test(marca)) {",
+                  "    console.warn('Petición omitida: no hay reserva_id y marca_prueba válidos. Ejecuta A. Crear reserva y continúa el ciclo en orden; no uses IDs existentes.');",
+                  "    pm.execution.skipRequest();",
+                  "} else {",
+                  "    // El ID de colección prevalece sobre cualquier variable de entorno antigua.",
+                  "    pm.variables.set('reserva_id', id);",
+                  "    pm.variables.set('marca_prueba', marca);",
+                  "}"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Content-Type JSON', function () {",
+                  "    pm.expect(pm.response.headers.get('Content-Type')).to.match(/^application\\/json(?:\\s*;|$)/i);",
+                  "});",
+                  "const body = pm.response.json();",
+                  "pm.test('HTTP 200', function () { pm.expect(pm.response.code).to.eql(200); });",
+                  "function checkReserva(data) {",
+                  "    pm.expect(data).to.be.an('object');",
+                  "    pm.expect(Number.isInteger(data.id) && data.id > 0 && data.id <= 4294967295).to.eql(true);",
+                  "    pm.expect(data.importe).to.be.a('string').and.match(/^(?:0|[1-9][0-9]{0,7})\\.[0-9]{2}$/);",
+                  "    pm.expect(['pendiente', 'confirmada', 'cancelada']).to.include(data.estado);",
+                  "    for (const field of ['nombre_huesped', 'email_huesped', 'nombre_alojamiento', 'fecha_entrada', 'fecha_salida', 'fecha_creacion']) {",
+                  "        pm.expect(data[field], field).to.be.a('string');",
+                  "    }",
+                  "}",
+                  "pm.test('Reserva propia, estado e historial del ciclo', function () {",
+                  "    checkReserva(body.data);",
+                  "    pm.expect(body.data.id).to.eql(Number(pm.collectionVariables.get('reserva_id')));",
+                  "    pm.expect(body.data.nombre_huesped).to.eql('Postman ' + pm.collectionVariables.get('marca_prueba'));",
+                  "    pm.expect(body.data.estado).to.eql('cancelada');",
+                  "    pm.expect(body.data.eventos).to.be.an('array');",
+                  "    pm.expect(body.data.eventos.map(event => event.tipo)).to.deep.eql([\"creada\",\"confirmada\",\"cancelada\"]);",
+                  "    const ids = new Set();",
+                  "    body.data.eventos.forEach(event => {",
+                  "        pm.expect(Number.isInteger(event.id) && event.id > 0).to.eql(true);",
+                  "        pm.expect(event.reserva_id).to.eql(body.data.id);",
+                  "        pm.expect(event.descripcion).to.be.a('string').and.not.empty;",
+                  "        pm.expect(event.fecha_creacion).to.be.a('string').and.not.empty;",
+                  "        ids.add(event.id);",
+                  "    });",
+                  "    pm.expect(ids.size).to.eql(body.data.eventos.length);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "E. Intentar confirmar la cancelada",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/api/reservas/{{reserva_id}}/estado",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"estado\": \"confirmada\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const id = String(pm.collectionVariables.get('reserva_id') || '');",
+                  "const marca = String(pm.collectionVariables.get('marca_prueba') || '');",
+                  "if (!/^[1-9][0-9]{0,9}$/.test(id) || Number(id) > 4294967295 || !/^postman-[0-9a-f-]{36}$/i.test(marca)) {",
+                  "    console.warn('Petición omitida: no hay reserva_id y marca_prueba válidos. Ejecuta A. Crear reserva y continúa el ciclo en orden; no uses IDs existentes.');",
+                  "    pm.execution.skipRequest();",
+                  "} else {",
+                  "    // El ID de colección prevalece sobre cualquier variable de entorno antigua.",
+                  "    pm.variables.set('reserva_id', id);",
+                  "    pm.variables.set('marca_prueba', marca);",
+                  "}"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Content-Type JSON', function () {",
+                  "    pm.expect(pm.response.headers.get('Content-Type')).to.match(/^application\\/json(?:\\s*;|$)/i);",
+                  "});",
+                  "const body = pm.response.json();",
+                  "pm.test('HTTP 409', function () { pm.expect(pm.response.code).to.eql(409); });",
+                  "pm.test('Error estructurado', function () {",
+                  "    pm.expect(body).to.be.an('object');",
+                  "    pm.expect(body.error).to.be.a('string').and.not.empty;",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "F. Consultar detalle final sin eventos extra",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/api/reservas/{{reserva_id}}",
+            "description": "Exige exactamente tres eventos del ciclo y sus IDs sin duplicados: el 409 anterior no debe haber añadido historial."
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const id = String(pm.collectionVariables.get('reserva_id') || '');",
+                  "const marca = String(pm.collectionVariables.get('marca_prueba') || '');",
+                  "if (!/^[1-9][0-9]{0,9}$/.test(id) || Number(id) > 4294967295 || !/^postman-[0-9a-f-]{36}$/i.test(marca)) {",
+                  "    console.warn('Petición omitida: no hay reserva_id y marca_prueba válidos. Ejecuta A. Crear reserva y continúa el ciclo en orden; no uses IDs existentes.');",
+                  "    pm.execution.skipRequest();",
+                  "} else {",
+                  "    // El ID de colección prevalece sobre cualquier variable de entorno antigua.",
+                  "    pm.variables.set('reserva_id', id);",
+                  "    pm.variables.set('marca_prueba', marca);",
+                  "}"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Content-Type JSON', function () {",
+                  "    pm.expect(pm.response.headers.get('Content-Type')).to.match(/^application\\/json(?:\\s*;|$)/i);",
+                  "});",
+                  "const body = pm.response.json();",
+                  "pm.test('HTTP 200', function () { pm.expect(pm.response.code).to.eql(200); });",
+                  "function checkReserva(data) {",
+                  "    pm.expect(data).to.be.an('object');",
+                  "    pm.expect(Number.isInteger(data.id) && data.id > 0 && data.id <= 4294967295).to.eql(true);",
+                  "    pm.expect(data.importe).to.be.a('string').and.match(/^(?:0|[1-9][0-9]{0,7})\\.[0-9]{2}$/);",
+                  "    pm.expect(['pendiente', 'confirmada', 'cancelada']).to.include(data.estado);",
+                  "    for (const field of ['nombre_huesped', 'email_huesped', 'nombre_alojamiento', 'fecha_entrada', 'fecha_salida', 'fecha_creacion']) {",
+                  "        pm.expect(data[field], field).to.be.a('string');",
+                  "    }",
+                  "}",
+                  "pm.test('Reserva propia, estado e historial del ciclo', function () {",
+                  "    checkReserva(body.data);",
+                  "    pm.expect(body.data.id).to.eql(Number(pm.collectionVariables.get('reserva_id')));",
+                  "    pm.expect(body.data.nombre_huesped).to.eql('Postman ' + pm.collectionVariables.get('marca_prueba'));",
+                  "    pm.expect(body.data.estado).to.eql('cancelada');",
+                  "    pm.expect(body.data.eventos).to.be.an('array');",
+                  "    pm.expect(body.data.eventos.map(event => event.tipo)).to.deep.eql([\"creada\",\"confirmada\",\"cancelada\"]);",
+                  "    const ids = new Set();",
+                  "    body.data.eventos.forEach(event => {",
+                  "        pm.expect(Number.isInteger(event.id) && event.id > 0).to.eql(true);",
+                  "        pm.expect(event.reserva_id).to.eql(body.data.id);",
+                  "        pm.expect(event.descripcion).to.be.a('string').and.not.empty;",
+                  "        pm.expect(event.fecha_creacion).to.be.a('string').and.not.empty;",
+                  "        ids.add(event.id);",
+                  "    });",
+                  "    pm.expect(ids.size).to.eql(body.data.eventos.length);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Errores esperados",
+      "description": "Los HTTP 4xx indicados son el resultado correcto. Los cuerpos tienen un único defecto intencional; no dependen del texto exacto de los mensajes.",
+      "item": [
+        {
+          "name": "Email inválido",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/api/reservas",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre_huesped\": \"Prueba ficticia Postman\",\n  \"email_huesped\": \"email-invalido\",\n  \"nombre_alojamiento\": \"Alojamiento ficticio Postman\",\n  \"fecha_entrada\": \"2030-01-10\",\n  \"fecha_salida\": \"2030-01-12\",\n  \"importe\": \"320.00\",\n  \"notas\": \"Prueba de validación de Postman; no debe crear una reserva.\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Content-Type JSON', function () {",
+                  "    pm.expect(pm.response.headers.get('Content-Type')).to.match(/^application\\/json(?:\\s*;|$)/i);",
+                  "});",
+                  "const body = pm.response.json();",
+                  "pm.test('HTTP 422', function () { pm.expect(pm.response.code).to.eql(422); });",
+                  "pm.test('Error estructurado asociado a email_huesped', function () {",
+                  "    pm.expect(body).to.be.an('object');",
+                  "    pm.expect(body.error).to.be.a('string').and.not.empty;",
+                  "    pm.expect(body.errors).to.be.an('object');",
+                  "    pm.expect(body.errors.email_huesped).to.be.a('string').and.not.empty;",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Salida anterior a entrada",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/api/reservas",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre_huesped\": \"Prueba ficticia Postman\",\n  \"email_huesped\": \"postman@example.com\",\n  \"nombre_alojamiento\": \"Alojamiento ficticio Postman\",\n  \"fecha_entrada\": \"2030-01-10\",\n  \"fecha_salida\": \"2030-01-09\",\n  \"importe\": \"320.00\",\n  \"notas\": \"Prueba de validación de Postman; no debe crear una reserva.\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Content-Type JSON', function () {",
+                  "    pm.expect(pm.response.headers.get('Content-Type')).to.match(/^application\\/json(?:\\s*;|$)/i);",
+                  "});",
+                  "const body = pm.response.json();",
+                  "pm.test('HTTP 422', function () { pm.expect(pm.response.code).to.eql(422); });",
+                  "pm.test('Error estructurado asociado a fecha_salida', function () {",
+                  "    pm.expect(body).to.be.an('object');",
+                  "    pm.expect(body.error).to.be.a('string').and.not.empty;",
+                  "    pm.expect(body.errors).to.be.an('object');",
+                  "    pm.expect(body.errors.fecha_salida).to.be.a('string').and.not.empty;",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Estado controlado por servidor",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/api/reservas",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre_huesped\": \"Prueba ficticia Postman\",\n  \"email_huesped\": \"postman@example.com\",\n  \"nombre_alojamiento\": \"Alojamiento ficticio Postman\",\n  \"fecha_entrada\": \"2030-01-10\",\n  \"fecha_salida\": \"2030-01-12\",\n  \"importe\": \"320.00\",\n  \"notas\": \"Prueba de validación de Postman; no debe crear una reserva.\",\n  \"estado\": \"pendiente\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Content-Type JSON', function () {",
+                  "    pm.expect(pm.response.headers.get('Content-Type')).to.match(/^application\\/json(?:\\s*;|$)/i);",
+                  "});",
+                  "const body = pm.response.json();",
+                  "pm.test('HTTP 422', function () { pm.expect(pm.response.code).to.eql(422); });",
+                  "pm.test('Error estructurado asociado a estado', function () {",
+                  "    pm.expect(body).to.be.an('object');",
+                  "    pm.expect(body.error).to.be.a('string').and.not.empty;",
+                  "    pm.expect(body.errors).to.be.an('object');",
+                  "    pm.expect(body.errors.estado).to.be.a('string').and.not.empty;",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Filtro estado desconocido",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/api/reservas?estado=desconocido"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Content-Type JSON', function () {",
+                  "    pm.expect(pm.response.headers.get('Content-Type')).to.match(/^application\\/json(?:\\s*;|$)/i);",
+                  "});",
+                  "const body = pm.response.json();",
+                  "pm.test('HTTP 400', function () { pm.expect(pm.response.code).to.eql(400); });",
+                  "pm.test('Error estructurado asociado a estado', function () {",
+                  "    pm.expect(body).to.be.an('object');",
+                  "    pm.expect(body.error).to.be.a('string').and.not.empty;",
+                  "    pm.expect(body.errors).to.be.an('object');",
+                  "    pm.expect(body.errors.estado).to.be.a('string').and.not.empty;",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "JSON mal formado",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/api/reservas",
+            "body": {
+              "mode": "raw",
+              "raw": "{\"nombre_huesped\":",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Content-Type JSON', function () {",
+                  "    pm.expect(pm.response.headers.get('Content-Type')).to.match(/^application\\/json(?:\\s*;|$)/i);",
+                  "});",
+                  "const body = pm.response.json();",
+                  "pm.test('HTTP 400', function () { pm.expect(pm.response.code).to.eql(400); });",
+                  "pm.test('Error estructurado', function () {",
+                  "    pm.expect(body).to.be.an('object');",
+                  "    pm.expect(body.error).to.be.a('string').and.not.empty;",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Array en lugar de objeto",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/api/reservas",
+            "body": {
+              "mode": "raw",
+              "raw": "[]",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Content-Type JSON', function () {",
+                  "    pm.expect(pm.response.headers.get('Content-Type')).to.match(/^application\\/json(?:\\s*;|$)/i);",
+                  "});",
+                  "const body = pm.response.json();",
+                  "pm.test('HTTP 400', function () { pm.expect(pm.response.code).to.eql(400); });",
+                  "pm.test('Error estructurado', function () {",
+                  "    pm.expect(body).to.be.an('object');",
+                  "    pm.expect(body.error).to.be.a('string').and.not.empty;",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Content-Type text/plain",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "text/plain"
+              }
+            ],
+            "url": "{{base_url}}/api/reservas",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre_huesped\": \"Prueba ficticia Postman\",\n  \"email_huesped\": \"postman@example.com\",\n  \"nombre_alojamiento\": \"Alojamiento ficticio Postman\",\n  \"fecha_entrada\": \"2030-01-10\",\n  \"fecha_salida\": \"2030-01-12\",\n  \"importe\": \"320.00\",\n  \"notas\": \"Prueba de validación de Postman; no debe crear una reserva.\"\n}",
+              "options": {
+                "raw": {
+                  "language": "text"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Content-Type JSON', function () {",
+                  "    pm.expect(pm.response.headers.get('Content-Type')).to.match(/^application\\/json(?:\\s*;|$)/i);",
+                  "});",
+                  "const body = pm.response.json();",
+                  "pm.test('HTTP 415', function () { pm.expect(pm.response.code).to.eql(415); });",
+                  "pm.test('Error estructurado', function () {",
+                  "    pm.expect(body).to.be.an('object');",
+                  "    pm.expect(body.error).to.be.a('string').and.not.empty;",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "ID de formato inválido",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/api/reservas/no-es-un-id"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Content-Type JSON', function () {",
+                  "    pm.expect(pm.response.headers.get('Content-Type')).to.match(/^application\\/json(?:\\s*;|$)/i);",
+                  "});",
+                  "const body = pm.response.json();",
+                  "pm.test('HTTP 404', function () { pm.expect(pm.response.code).to.eql(404); });",
+                  "pm.test('Error estructurado', function () {",
+                  "    pm.expect(body).to.be.an('object');",
+                  "    pm.expect(body.error).to.be.a('string').and.not.empty;",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Método no permitido",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/api/reservas"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Content-Type JSON', function () {",
+                  "    pm.expect(pm.response.headers.get('Content-Type')).to.match(/^application\\/json(?:\\s*;|$)/i);",
+                  "});",
+                  "const body = pm.response.json();",
+                  "pm.test('HTTP 405', function () { pm.expect(pm.response.code).to.eql(405); });",
+                  "pm.test('Error estructurado', function () {",
+                  "    pm.expect(body).to.be.an('object');",
+                  "    pm.expect(body.error).to.be.a('string').and.not.empty;",
+                  "});",
+                  "pm.test('Allow incluye los métodos reales de la ruta', function () {",
+                  "    const allow = pm.response.headers.get('Allow');",
+                  "    pm.expect(allow).to.be.a('string');",
+                  "    pm.expect(allow.split(',').map(method => method.trim()).sort()).to.deep.eql(['GET', 'HEAD', 'POST']);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

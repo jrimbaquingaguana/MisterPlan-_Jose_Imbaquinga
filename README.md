@@ -259,6 +259,14 @@ La aplicación está preparada para publicarse en la raíz de un dominio o subdo
 
 Antes de entregar falta comprobar el funcionamiento en el hosting y añadir aquí la URL definitiva.
 
+## Probar la API con Postman
+
+Importa `postman/MisterPlan.postman_collection.json` en Postman y ajusta la variable de colección `base_url` al puerto local utilizado (por defecto, `http://127.0.0.1:8080`, sin barra final). No hace falta importar un entorno ni introducir IDs existentes. Arranca PHP con el comando local anterior y ten disponible MySQL con el esquema importado.
+
+Puedes ejecutar la carpeta **Consultas** o el ciclo **Crear, confirmar y cancelar**, siempre en orden de A a F. El ciclo genera y guarda su propio ID; si falta, las peticiones dependientes se omiten y la consola explica el motivo. Utiliza una versión de Postman que soporte `pm.execution.skipRequest()` y evita variables de entorno con los mismos nombres que las de colección.
+
+Cada ejecución del ciclo crea otra reserva ficticia y la deja cancelada. Úsalo solo en una instancia propia o exclusiva de pruebas; no hay DELETE ni limpieza automática. En **Errores esperados**, los códigos 4xx indicados cuentan como comprobaciones correctas.
+
 ## Qué mejoraría con más tiempo
 
 Añadiría autenticación y autorización antes de utilizar datos reales. Actualmente, cualquier persona con acceso a la aplicación puede consultar y modificar reservas.
