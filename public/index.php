@@ -56,7 +56,7 @@ $router->add('GET', '/assets/css/app.css', static function (): void {
     header('X-Content-Type-Options: nosniff');
     readfile(__DIR__ . '/assets/css/app.css');
 });
-foreach (['api.js', 'reserva-form.js'] as $asset) {
+foreach (['api.js', 'reserva-form.js', 'reserva-actions.js', 'reservas-list.js', 'reserva-detail.js'] as $asset) {
     $router->add('GET', '/assets/js/' . $asset, static function () use ($asset): void {
         header('Content-Type: text/javascript; charset=utf-8');
         header('X-Content-Type-Options: nosniff');
