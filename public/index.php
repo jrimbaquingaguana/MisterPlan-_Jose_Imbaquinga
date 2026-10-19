@@ -47,6 +47,7 @@ $viewController = new ReservaViewController($createService, new ReservaFiltroVal
 $router->add('GET', '/reservas', static function () use ($viewController): void {
     $viewController->index($_GET);
 });
+$router->add('GET', '/reservas/nueva', [$viewController, 'new']);
 $router->add('GET', '/reservas/{id}', static function (string $id) use ($viewController): void {
     $viewController->show($id, $_GET);
 });
@@ -55,6 +56,13 @@ $router->add('GET', '/assets/css/app.css', static function (): void {
     header('X-Content-Type-Options: nosniff');
     readfile(__DIR__ . '/assets/css/app.css');
 });
+foreach (['api.js', 'reserva-form.js'] as $asset) {
+    $router->add('GET', '/assets/js/' . $asset, static function () use ($asset): void {
+        header('Content-Type: text/javascript; charset=utf-8');
+        header('X-Content-Type-Options: nosniff');
+        readfile(__DIR__ . '/assets/js/' . $asset);
+    });
+}
 $router->add('GET', '/api/reservas', static function () use ($controller): void {
     $controller->index($_GET);
 });

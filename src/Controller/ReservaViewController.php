@@ -17,6 +17,13 @@ final class ReservaViewController
     {
     }
 
+    public function new(): void
+    {
+        $this->views->render('reservas/new.html.twig', [
+            'api_url' => '/api/reservas', 'detail_base_url' => '/reservas/',
+        ]);
+    }
+
     public function index(array $input): void
     {
         $errors = $this->validator->validate($input);

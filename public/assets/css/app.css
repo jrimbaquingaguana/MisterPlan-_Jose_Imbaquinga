@@ -65,3 +65,10 @@ dd { margin: 0.25rem 0 0; overflow-wrap: anywhere; }
 .eyebrow { font-weight: 600; color: #4c5e68; }
 .visually-hidden, .skip-link:not(:focus) { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
 .skip-link:focus { display: block; padding: 0.75rem; background: #fff; }
+.reservation-form { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 18rem), 1fr)); gap: 1.2rem; }
+.reservation-form textarea { width: 100%; min-width: 0; resize: vertical; font: inherit; border: 1px solid #71838d; border-radius: 0.25rem; padding: 0.5rem; color: #243440; background: #fff; }
+.reservation-form small { color: #4c5e68; }
+.reservation-form button:disabled { opacity: 0.65; cursor: not-allowed; }
+.reservation-form[aria-busy="true"] { cursor: progress; }
+.success-message { border-left: 4px solid #185c3a; background: #daf0e3; color: #185c3a; padding: 1rem; }
+.reservation-form :focus-visible { outline: 3px solid #155c75; outline-offset: 3px; }

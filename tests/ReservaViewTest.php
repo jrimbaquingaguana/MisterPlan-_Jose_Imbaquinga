@@ -18,6 +18,48 @@ use Twig\Loader\ArrayLoader;
 
 final class ReservaViewTest extends TestCase
 {
+    public function testNewRouteRendersWithoutDatabaseAndTakesPrecedenceOverDetail(): void
+    {
+        $controller = new ReservaViewController(static function (): never {
+            self::fail('El formulario vacío no debe abrir PDO.');
+        }, new ReservaFiltroValidator(), HtmlResponse::create());
+        $allowed = null;
+        $router = new Router(static function (string $message, int $status, array $headers) use (&$allowed): void {
+            $allowed = $headers['Allow'] ?? null;
+            HtmlResponse::create()->error($message, $status, $headers);
+        });
+        $router->add('GET', '/reservas/{id}', static function (): never {
+            self::fail('La ruta nueva no debe invocar el detalle.');
+        });
+        $router->add('GET', '/reservas/nueva', [$controller, 'new']);
+        $html = $this->capture(fn () => $router->dispatch('GET', '/reservas/nueva'));
+        self::assertSame(200, http_response_code());
+        self::assertStringContainsString('<html lang="es">', $html);
+        self::assertStringContainsString('method="post" action="/api/reservas"', $html);
+        self::assertStringContainsString('type="submit" disabled', $html);
+        self::assertStringContainsString('type="module" src="/assets/js/reserva-form.js"', $html);
+        preg_match_all('/name="([^"]+)"/', $html, $matches);
+        self::assertSame(['viewport', 'nombre_huesped', 'email_huesped', 'nombre_alojamiento',
+            'fecha_entrada', 'fecha_salida', 'importe', 'notas'], $matches[1]);
+        self::assertSame('', $this->capture(fn () => $router->dispatch('HEAD', '/reservas/nueva')));
+        self::assertSame(200, http_response_code());
+        $this->capture(fn () => $router->dispatch('POST', '/reservas/nueva'));
+        self::assertSame(405, http_response_code());
+        self::assertSame('GET, HEAD', $allowed);
+    }
+
+    public function testNewTemplateAutoescapesContext(): void
+    {
+        $html = $this->capture(fn () => HtmlResponse::create()->render('reservas/new.html.twig', [
+            'api_url' => '/api/reservas?x=" onfocus="alert(1)',
+            'detail_base_url' => '<script>alert(1)</script>',
+        ]));
+        self::assertStringContainsString('&quot; onfocus=&quot;', $html);
+        self::assertStringContainsString('&lt;script&gt;', $html);
+        self::assertStringNotContainsString('<script>alert(1)</script>', $html);
+        self::assertStringNotContainsString(' onfocus="', $html);
+    }
+
     private function reserva(): array
     {
         return [

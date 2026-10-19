@@ -1,0 +1,38 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Nueva reserva{% endblock %}
+
+{% block content %}
+    <a class="back-link" href="/reservas">Volver al listado</a>
+    <h1>Nueva reserva</h1>
+    <p class="intro">La reserva se crea pendiente. Los campos marcados con * son obligatorios.</p>
+    <noscript><p class="error-summary">El alta requiere JavaScript. Actívalo para crear una reserva.</p></noscript>
+    <form id="reserva-form" class="panel reservation-form" method="post" action="{{ api_url }}" data-detail-base="{{ detail_base_url }}">
+        {% for field, label in {nombre_huesped: 'Nombre del huésped', email_huesped: 'Email del huésped', nombre_alojamiento: 'Nombre del alojamiento', fecha_entrada: 'Fecha de entrada', fecha_salida: 'Fecha de salida', importe: 'Importe en euros'} %}
+            <div class="field">
+                <label for="{{ field }}">{{ label }} *</label>
+                <input id="{{ field }}" name="{{ field }}" required
+                    type="{{ field == 'email_huesped' ? 'email' : (field in ['fecha_entrada', 'fecha_salida'] ? 'date' : 'text') }}"
+                    {% if field in ['nombre_huesped', 'nombre_alojamiento'] %}maxlength="150"{% endif %}
+                    {% if field == 'email_huesped' %}maxlength="254"{% endif %}
+                    {% if field == 'importe' %}inputmode="decimal" placeholder="320.00" aria-describedby="importe-help error-importe"{% else %}aria-describedby="error-{{ field }}"{% endif %}>
+                {% if field == 'importe' %}<small id="importe-help">Por ejemplo, 320.00. Entre 0 y 99999999.99, con punto y hasta dos decimales.</small>{% endif %}
+                <p id="error-{{ field }}" class="field-error" hidden></p>
+            </div>
+        {% endfor %}
+        <div class="field full-width">
+            <label for="notas">Notas (opcional)</label>
+            <textarea id="notas" name="notas" maxlength="5000" rows="5" aria-describedby="error-notas"></textarea>
+            <p id="error-notas" class="field-error" hidden></p>
+        </div>
+        <div id="form-status" class="full-width" role="status" aria-live="polite" aria-atomic="true"></div>
+        <div class="filter-actions">
+            <button type="submit" disabled>Crear reserva</button>
+            <button type="button" id="create-another" hidden>Crear otra reserva</button>
+        </div>
+    </form>
+{% endblock %}
+
+{% block scripts %}
+    <script type="module" src="/assets/js/reserva-form.js"></script>
+{% endblock %}
