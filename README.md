@@ -259,6 +259,12 @@ La aplicación está preparada para publicarse en la raíz de un dominio o subdo
 
 Antes de entregar falta comprobar el funcionamiento en el hosting y añadir aquí la URL definitiva.
 
+## Comprobaciones con GitHub Actions
+
+El workflow **PHP checks** está configurado para ejecutarse en cada push y pull request, y también permite ejecución manual. Comprueba Composer y los requisitos de plataforma, instala las dependencias, revisa la sintaxis de los PHP propios versionados y ejecuta las pruebas unitarias con PHP 8.1, sin una base de datos real ni cobertura.
+
+Los resultados y logs se consultan en la pestaña **Actions** del repositorio, seleccionando **PHP checks** y una ejecución. La integración MySQL y las pruebas de navegador se ejecutan aparte. La ejecución real en GitHub queda pendiente hasta subir el workflow.
+
 ## Probar la API con Postman
 
 Importa `postman/MisterPlan.postman_collection.json` en Postman y ajusta la variable de colección `base_url` al puerto local utilizado (por defecto, `http://127.0.0.1:8080`, sin barra final). No hace falta importar un entorno ni introducir IDs existentes. Arranca PHP con el comando local anterior y ten disponible MySQL con el esquema importado.

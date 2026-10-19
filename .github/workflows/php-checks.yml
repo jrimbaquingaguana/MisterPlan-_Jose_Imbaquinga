@@ -1,0 +1,43 @@
+name: PHP checks
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  php-checks:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Set up PHP and Composer
+        uses: shivammathur/setup-php@eb7c497e18156a6bbabfef1d3a82760b9eda3962 # 2.40.0
+        with:
+          php-version: '8.1'
+          extensions: ctype, dom, filter, iconv, json, libxml, mbstring, pcre, pdo, pdo_mysql, phar, tokenizer, xml, xmlwriter
+          tools: composer:v2
+          coverage: none
+
+      - name: Validate Composer configuration
+        run: composer validate
+
+      - name: Install dependencies
+        run: composer install --no-interaction --prefer-dist --no-progress
+
+      - name: Check platform requirements
+        run: composer check-platform-reqs
+
+      - name: Check tracked PHP syntax
+        shell: bash
+        run: git ls-files -z -- '*.php' ':!:vendor/**' | xargs -0 -r -n 1 php -l
+
+      - name: Run unit tests
+        run: composer test
