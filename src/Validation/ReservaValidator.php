@@ -6,6 +6,24 @@ namespace App\Validation;
 
 final class ReservaValidator
 {
+    public function validateStatus(array $input): array
+    {
+        $errors = [];
+        foreach ($input as $field => $value) {
+            if ($field !== 'estado') {
+                $errors[$field] = 'Campo desconocido.';
+            }
+        }
+        if (!array_key_exists('estado', $input)) {
+            $errors['estado'] = 'Este campo es obligatorio.';
+        } elseif (!is_string($input['estado'])) {
+            $errors['estado'] = 'Debe ser un texto.';
+        } elseif (\App\Domain\EstadoReserva::tryFrom($input['estado']) === null) {
+            $errors['estado'] = 'Estado desconocido.';
+        }
+        return $errors;
+    }
+
     public function validateCreate(array $input): array
     {
         $errors = [];

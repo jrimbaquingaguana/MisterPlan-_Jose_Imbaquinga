@@ -105,6 +105,8 @@ try {
         $assert($serviceId > 0, 'No se obtuvo el ID intentado.');
         $assert((int) $pdo->query('SELECT COUNT(*) FROM reserva WHERE id = ' . $serviceId)->fetchColumn() === 0, 'La reserva fallida persiste.');
     }
+    $pdo->failEvent = false;
+    require __DIR__ . '/status-checks.php';
     echo "OK: creación, controlador 201, normalización, historial y rollback real MySQL.\n";
 } finally {
     foreach (array_reverse($created) as $table) {

@@ -59,6 +59,23 @@ final class ReservaRepository
         return $row === false ? null : $this->castRow($row);
     }
 
+    public function findByIdForUpdate(int $id): ?array
+    {
+        $query = $this->connection->prepare('SELECT ' . self::COLUMNS . ' FROM reserva WHERE id = :id FOR UPDATE');
+        $query->bindValue(':id', $id, PDO::PARAM_INT);
+        $query->execute();
+        $row = $query->fetch();
+        return $row === false ? null : $this->castRow($row);
+    }
+
+    public function updateStatus(int $id, \App\Domain\EstadoReserva $estado): void
+    {
+        $query = $this->connection->prepare('UPDATE reserva SET estado = :estado WHERE id = :id');
+        $query->bindValue(':id', $id, PDO::PARAM_INT);
+        $query->bindValue(':estado', $estado->value, PDO::PARAM_STR);
+        $query->execute();
+    }
+
     private function conditions(array $filters): array
     {
         $conditions = [];

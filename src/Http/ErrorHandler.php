@@ -36,6 +36,10 @@ final class ErrorHandler
                 JsonResponse::send(['error' => 'Reserva no encontrada'], 404);
                 return;
             }
+            if ($error instanceof \App\Domain\ReservaConflictException) {
+                JsonResponse::send(['error' => $error->getMessage()], 409);
+                return;
+            }
             error_log('MisterPlan: excepción inesperada de tipo ' . get_class($error));
             JsonResponse::send(['error' => 'Error interno del servidor'], 500);
         });

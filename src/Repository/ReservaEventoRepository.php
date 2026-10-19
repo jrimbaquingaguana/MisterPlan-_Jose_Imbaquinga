@@ -38,4 +38,14 @@ final class ReservaEventoRepository
         $query->bindValue(':reserva_id', $reservaId, PDO::PARAM_INT);
         $query->execute();
     }
+
+    public function insertStatusChanged(int $reservaId, \App\Domain\EstadoReserva $from, \App\Domain\EstadoReserva $to): void
+    {
+        $query = $this->connection->prepare('INSERT INTO reserva_evento (reserva_id, tipo, descripcion)'
+            . ' VALUES (:reserva_id, :tipo, :descripcion)');
+        $query->bindValue(':reserva_id', $reservaId, PDO::PARAM_INT);
+        $query->bindValue(':tipo', $to->value, PDO::PARAM_STR);
+        $query->bindValue(':descripcion', 'Estado cambiado de ' . $from->value . ' a ' . $to->value . '.', PDO::PARAM_STR);
+        $query->execute();
+    }
 }

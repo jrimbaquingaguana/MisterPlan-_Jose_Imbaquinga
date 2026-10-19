@@ -66,6 +66,19 @@ $router->add('POST', '/api/reservas', static function () use ($controller): void
     $controller->create($input);
 });
 
+$router->add('PATCH', '/api/reservas/{id}/estado', static function (string $id) use ($controller): void {
+    $stream = fopen('php://input', 'rb');
+    if ($stream === false) {
+        throw new RuntimeException('No se pudo abrir la petición.');
+    }
+    try {
+        $input = \App\Http\JsonRequest::read($_SERVER['CONTENT_TYPE'] ?? '', $stream);
+    } finally {
+        fclose($stream);
+    }
+    $controller->changeStatus($id, $input);
+});
+
 $path = explode('?', $_SERVER['REQUEST_URI'] ?? '/', 2)[0];
 if ($path === '/api/reservas' || str_starts_with($path, '/api/reservas/')) {
     header('Cache-Control: no-store');

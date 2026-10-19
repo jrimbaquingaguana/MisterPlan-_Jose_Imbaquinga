@@ -38,6 +38,43 @@ final class ReservaService
         return ['data' => $reserva];
     }
 
+    public function changeStatus(int $id, array $input): array
+    {
+        $errors = (new \App\Validation\ReservaValidator())->validateStatus($input);
+        if ($errors !== []) {
+            throw new \App\Domain\ReservaValidationException($errors);
+        }
+        $target = \App\Domain\EstadoReserva::from($input['estado']);
+        $connection = $this->reservas->connection();
+        if ($connection !== $this->eventos->connection()) {
+            throw new \LogicException('Los repositorios deben compartir PDO.');
+        }
+        try {
+            $connection->beginTransaction();
+            $reserva = $this->reservas->findByIdForUpdate($id);
+            if ($reserva === null) {
+                throw new ReservaNotFoundException();
+            }
+            $current = \App\Domain\EstadoReserva::from($reserva['estado']);
+            if (!$current->canTransitionTo($target)) {
+                throw new \App\Domain\ReservaConflictException();
+            }
+            $this->reservas->updateStatus($id, $target);
+            $this->eventos->insertStatusChanged($id, $current, $target);
+            $result = $this->detail($id);
+            $connection->commit();
+            return $result;
+        } catch (\Throwable $error) {
+            try {
+                if ($connection->inTransaction()) {
+                    $connection->rollBack();
+                }
+            } catch (\Throwable $rollbackError) {
+            }
+            throw $error;
+        }
+    }
+
     public function create(array $input): array
     {
         $errors = (new \App\Validation\ReservaValidator())->validateCreate($input);

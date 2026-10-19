@@ -11,7 +11,7 @@ final class Router
 
     public function add(string $method, string $path, callable $handler): void
     {
-        if (str_ends_with($path, '/{id}')) {
+        if (str_contains($path, '/{id}')) {
             $this->dynamicRoutes[$path][$method] = $handler;
             return;
         }
@@ -25,9 +25,9 @@ final class Router
         $arguments = [];
         if ($handlers === null) {
             foreach ($this->dynamicRoutes as $route => $registered) {
-                $prefix = substr($route, 0, -4);
-                if (str_starts_with($path, $prefix)) {
-                    $id = substr($path, strlen($prefix));
+                [$prefix, $suffix] = explode('{id}', $route, 2);
+                if (str_starts_with($path, $prefix) && str_ends_with($path, $suffix)) {
+                    $id = substr($path, strlen($prefix), strlen($path) - strlen($prefix) - strlen($suffix));
                     if ($id !== '' && !str_contains($id, '/')) {
                         $handlers = $registered;
                         $arguments = [$id];
