@@ -1,6 +1,6 @@
 -- MySQL dump 10.13  Distrib 8.0.38, for Win64 (x86_64)
 --
--- Host: 127.0.0.1    Database: misterplan_reservas
+-- Host: 127.0.0.10   Database: misterplan_reservas
 -- ------------------------------------------------------
 -- Server version	8.0.46
 

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Http;
 
 use ErrorException;
+use App\Domain\ReservaNotFoundException;
 use Throwable;
 
 final class ErrorHandler
@@ -23,6 +24,10 @@ final class ErrorHandler
 
         set_exception_handler(static function (Throwable $error): void {
             restore_error_handler();
+            if ($error instanceof ReservaNotFoundException) {
+                JsonResponse::send(['error' => 'Reserva no encontrada'], 404);
+                return;
+            }
             // No registrar mensajes ni trazas: pueden contener datos sensibles.
             error_log('MisterPlan: excepción inesperada de tipo ' . get_class($error));
             JsonResponse::send(['error' => 'Error interno del servidor'], 500);

@@ -4,8 +4,6 @@ declare(strict_types=1);
 
 namespace App\Validation;
 
-use DateTimeImmutable;
-
 final class ReservaValidator
 {
     public function validateCreate(array $input): array
@@ -39,7 +37,7 @@ final class ReservaValidator
         $dates = [];
         foreach (['fecha_entrada', 'fecha_salida'] as $field) {
             if (array_key_exists($field, $input)) {
-                $dates[$field] = $this->parseDate($input[$field]);
+                $dates[$field] = DateValidator::parse($input[$field]);
                 if ($dates[$field] === null) {
                     $errors[$field] = 'Debe ser una fecha real con formato YYYY-MM-DD y año entre 1000 y 9999.';
                 }
@@ -80,20 +78,6 @@ final class ReservaValidator
             return 'El texto supera el máximo de ' . $limit . ' caracteres.';
         }
         return null;
-    }
-
-    private function parseDate(mixed $value): ?DateTimeImmutable
-    {
-        if (!is_string($value) || preg_match('/\A[1-9][0-9]{3}-[0-9]{2}-[0-9]{2}\z/', $value) !== 1) {
-            return null;
-        }
-        $date = DateTimeImmutable::createFromFormat('!Y-m-d', $value);
-        $errors = DateTimeImmutable::getLastErrors();
-        if ($date === false || ($errors !== false && ($errors['warning_count'] > 0 || $errors['error_count'] > 0))
-            || $date->format('Y-m-d') !== $value) {
-            return null;
-        }
-        return $date;
     }
 
     private function validAmount(mixed $value): bool
