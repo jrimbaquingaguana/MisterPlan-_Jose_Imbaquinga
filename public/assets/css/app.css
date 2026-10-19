@@ -72,3 +72,8 @@ dd { margin: 0.25rem 0 0; overflow-wrap: anywhere; }
 .reservation-form[aria-busy="true"] { cursor: progress; }
 .success-message { border-left: 4px solid #185c3a; background: #daf0e3; color: #185c3a; padding: 1rem; }
 .reservation-form :focus-visible { outline: 3px solid #155c75; outline-offset: 3px; }
+.reservation-actions { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-block: 0.5rem; }
+.reservation-actions[hidden] { display: none; }
+.reservation-actions button { padding: 0.35rem 0.7rem; }
+button:disabled { opacity: 0.65; cursor: not-allowed; }
+#reservation-results[aria-busy="true"] { cursor: progress; }

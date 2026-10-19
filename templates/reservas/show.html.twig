@@ -6,7 +6,9 @@
     <a class="back-link" href="{{ back_url }}">← Volver al listado</a>
     <h1>Reserva {{ reserva.id }}</h1>
     <section class="panel" aria-labelledby="reserva-title">
-        <h2 id="reserva-title">Datos de la reserva</h2>
+        <h2 id="reserva-title" tabindex="-1">Datos de la reserva</h2>
+        <p id="action-status" role="status" aria-live="polite"></p>
+        <div id="detail-actions" data-id="{{ reserva.id }}">{% include 'reservas/_actions.html.twig' with {reserva: reserva} only %}</div>
         <dl class="details">
             <div><dt>Identificador</dt><dd>{{ reserva.id }}</dd></div>
             <div><dt>Huésped</dt><dd>{{ reserva.nombre_huesped }}</dd></div>
@@ -14,7 +16,7 @@
             <div><dt>Alojamiento</dt><dd>{{ reserva.nombre_alojamiento }}</dd></div>
             <div><dt>Entrada</dt><dd><time datetime="{{ reserva.fecha_entrada }}">{{ reserva.fecha_entrada|date('d/m/Y', false) }}</time></dd></div>
             <div><dt>Salida</dt><dd><time datetime="{{ reserva.fecha_salida }}">{{ reserva.fecha_salida|date('d/m/Y', false) }}</time></dd></div>
-            <div><dt>Estado</dt><dd>{% include 'reservas/_estado.html.twig' with {estado: reserva.estado} only %}</dd></div>
+            <div><dt>Estado</dt><dd id="detail-state">{% include 'reservas/_estado.html.twig' with {estado: reserva.estado} only %}</dd></div>
             <div><dt>Importe</dt><dd>{{ reserva.importe|number_format(2, ',', '.') }} €</dd></div>
             <div><dt>Fecha de creación</dt><dd><time datetime="{{ reserva.fecha_creacion|replace({' ': 'T'}) }}">{{ reserva.fecha_creacion|date('d/m/Y H:i', false) }}</time></dd></div>
             <div class="full-width"><dt>Notas</dt><dd class="notes">{{ reserva.notas is same as(null) or reserva.notas == '' ? 'Sin notas' : reserva.notas }}</dd></div>
@@ -22,6 +24,7 @@
     </section>
     <section class="panel" aria-labelledby="historial-title">
         <h2 id="historial-title">Historial</h2>
+        <div id="detail-history">
         {% if reserva.eventos is empty %}
             <p>No hay eventos registrados.</p>
         {% else %}
@@ -35,5 +38,8 @@
                 {% endfor %}
             </ol>
         {% endif %}
+        </div>
     </section>
 {% endblock %}
+
+{% block scripts %}<script type="module" src="/assets/js/reserva-detail.js"></script>{% endblock %}

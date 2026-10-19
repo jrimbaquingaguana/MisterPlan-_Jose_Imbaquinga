@@ -1,0 +1,4 @@
+<span class="reservation-actions" data-reservation-id="{{ reserva.id }}" hidden>
+    {% if reserva.estado == 'pendiente' %}<button type="button" data-state="confirmada">Confirmar</button>{% endif %}
+    {% if reserva.estado != 'cancelada' %}<button type="button" data-state="cancelada">Cancelar</button>{% endif %}
+</span>

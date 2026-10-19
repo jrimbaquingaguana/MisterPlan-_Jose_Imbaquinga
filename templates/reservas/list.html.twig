@@ -10,12 +10,12 @@
     <section class="panel" aria-labelledby="filtros-title">
         <h2 id="filtros-title">Buscar reservas</h2>
         {% if errors is not empty %}
-            <div class="error-summary" role="alert">
+            <div class="error-summary" role="alert" data-filter-errors>
                 <p>Revisa los filtros. No se ha realizado la consulta.</p>
                 <ul>{% for error in errors %}<li>{{ error }}</li>{% endfor %}</ul>
             </div>
         {% endif %}
-        <form action="/reservas" method="get" class="filters">
+        <form id="reserva-filters" action="/reservas" method="get" class="filters">
             <div class="field">
                 <label for="estado">Estado</label>
                 <select id="estado" name="estado" {% if errors.estado is defined %}aria-invalid="true" aria-describedby="error-estado"{% endif %}>
@@ -48,14 +48,17 @@
                 </select>
                 {% if errors.per_page is defined %}<p class="field-error" id="error-per-page">{{ errors.per_page }}</p>{% endif %}
             </div>
-            <div class="filter-actions"><button type="submit">Filtrar</button><a href="/reservas">Limpiar filtros</a></div>
+            <div class="filter-actions"><button type="submit">Filtrar</button><a href="/reservas" data-clear-filters>Limpiar filtros</a></div>
         </form>
         <p class="hint">El intervalo muestra estancias que coinciden con las fechas seleccionadas.</p>
     </section>
 
+    <p id="list-status" role="status" aria-live="polite"></p>
+    <p id="action-status" role="status" aria-live="polite"></p>
+    <section id="reservation-results" aria-labelledby="resultados-title">
     {% if errors is empty %}
-        <section aria-labelledby="resultados-title">
-            <h2 id="resultados-title">Resultados</h2>
+        <div data-results-content>
+            <h2 id="resultados-title" tabindex="-1">Resultados</h2>
             <p>{{ meta.total }} resultados · Página {{ meta.page }} de {{ max(1, meta.total_pages) }}</p>
             {% if valid_page_url %}
                 <div class="empty-state"><p>La página solicitada está fuera de los resultados.</p><a href="{{ valid_page_url }}">Volver a una página válida</a></div>
@@ -75,7 +78,7 @@
                                     <td><time datetime="{{ reserva.fecha_salida }}">{{ reserva.fecha_salida|date('d/m/Y', false) }}</time></td>
                                     <td>{% include 'reservas/_estado.html.twig' with {estado: reserva.estado} only %}</td>
                                     <td class="amount">{{ reserva.importe|number_format(2, ',', '.') }} €</td>
-                                    <td><a href="{{ reserva.detail_url }}" aria-label="Ver reserva {{ reserva.id }} de {{ reserva.nombre_huesped }}">Ver detalle</a></td>
+                                    <td><a href="{{ reserva.detail_url }}" aria-label="Ver reserva {{ reserva.id }} de {{ reserva.nombre_huesped }}">Ver detalle</a>{% include 'reservas/_actions.html.twig' with {reserva: reserva} only %}</td>
                                 </tr>
                             {% endfor %}
                         </tbody>
@@ -88,6 +91,9 @@
                     {% if next_url %}<a href="{{ next_url }}" rel="next">Siguiente</a>{% endif %}
                 </nav>
             {% endif %}
-        </section>
+        </div>
     {% endif %}
+    </section>
 {% endblock %}
+
+{% block scripts %}<script type="module" src="/assets/js/reservas-list.js"></script>{% endblock %}
